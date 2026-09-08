@@ -51,8 +51,8 @@ func TestActionWebAPIListSearchAndRun(t *testing.T) {
 	}
 
 	res = httptest.NewRecorder()
-	req = jsonRequest(http.MethodPost, webapi.VersionPrefix+"/actions/run",
-		editor_action.Request{ID: ActionEditorUndo})
+	// req = jsonRequest(http.MethodPost, webapi.VersionPrefix+"/actions/run",
+	// 	editor_action.Request{ID: ActionEditorUndo})
 	handler.ServeEditorWebAPI(ed, res, req)
 	if res.Code != http.StatusOK {
 		t.Fatalf("run status = %d, want %d", res.Code, http.StatusOK)

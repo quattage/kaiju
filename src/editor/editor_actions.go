@@ -37,9 +37,6 @@ func (ed *Editor) initializeActions() {
 
 func (ed *Editor) actionContext() editor_action.Context {
 	current := ""
-	if ed.currentWorkspace != nil {
-		current = ed.currentWorkspace.ID()
-	}
 	return editor_action.Context{
 		CurrentWorkspace: current,
 		InputFocused:     ed.IsInputFocused(),
@@ -51,7 +48,7 @@ func (ed *Editor) actionContext() editor_action.Context {
 			"projectFileSystem": ed.ProjectFileSystem(),
 			"events":            &ed.events,
 			"cache":             ed.Cache(),
-			"stageView":         &ed.stageView,
+			"stageView":         &ed.wsm.StageView,
 		},
 	}
 }

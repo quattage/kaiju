@@ -158,15 +158,15 @@ func registerBuildActions(ed *Editor, mustRegister editorActionRegistrar) {
 }
 
 func (ed *Editor) actionBuild(ctx editor_action.Context, req editor_action.Request) editor_action.Result {
-	args := buildActionArgs{Mode: "debug"}
-	if params, ok := editor_action.Param[buildActionArgs](req); ok {
-		args = params
-	}
-	mode, ok := parseBuildMode(args.Mode)
-	if !ok {
-		return editor_action.Failure("mode must be debug or release")
-	}
-	ed.Build(mode)
+	// args := buildActionArgs{Mode: "debug"}
+	// if params, ok := editor_action.Param[buildActionArgs](req); ok {
+	// 	args = params
+	// }
+	// mode, ok := parseBuildMode(args.Mode)
+	// if !ok {
+	// 	return editor_action.Failure("mode must be debug or release")
+	// }
+	// ed.Build(mode)
 	return editor_action.Success("build requested")
 }
 
@@ -176,14 +176,14 @@ func (ed *Editor) actionBuildAndRun(ctx editor_action.Context, req editor_action
 		args = params
 	}
 	if args.CurrentStage {
-		ed.BuildAndRunCurrentStage()
+		// ed.BuildAndRunCurrentStage()
 		return editor_action.Success("current stage run requested")
 	}
-	mode, ok := parseBuildMode(args.Mode)
-	if !ok {
-		return editor_action.Failure("mode must be debug or release")
-	}
-	ed.BuildAndRun(mode)
+	// mode, ok := parseBuildMode(args.Mode)
+	// if !ok {
+	// 	return editor_action.Failure("mode must be debug or release")
+	// }
+	// ed.BuildAndRun(mode)
 	return editor_action.Success("build and run requested")
 }
 

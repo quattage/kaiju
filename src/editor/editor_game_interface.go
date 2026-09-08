@@ -68,7 +68,7 @@ func (EditorGame) Launch(host *engine.Host) {
 	ed.earlyLoadUI()
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {
-		ed.BlurInterface()
+		ed.UIWorkspace().BlurInterface()
 		if build.Debug && engine.LaunchParams.AutoTest {
 			// Auto-test mode: create a temporary test project automatically
 			ed.createProject("AutoTest", "autotestproject", "")
@@ -78,15 +78,14 @@ func (EditorGame) Launch(host *engine.Host) {
 		// editorPluginRegistry. On match it invokes the onResolved callback
 		// (newProjectOverlay) synchronously; on mismatch it shows a modal
 		// that owns the resolution flow and calls onResolved itself.
-		ed.validateCompiledPlugins(ed.newProjectOverlay)
+		ed.validateCompiledPlugins(ed.initialLoad)
 	})
-	console.For(host).OnOpen.Add(func() { ed.BlurInterface() })
-	console.For(host).OnClose.Add(func() { ed.FocusInterface() })
 	if build.Debug {
 		console.For(host).AddCommand("showlods",
 			"Spawns all of the selected mesh's LOD meshes beside it",
 			func(h *engine.Host, arg string) string {
-				return ed.StageWorkspace().ShowLODs()
+				// return ed.StageWorkspace().ShowLODs()
+				return ""
 			})
 	}
 }

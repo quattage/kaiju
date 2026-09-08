@@ -540,6 +540,18 @@ func (d *Document) setupBody(h *Element, uiMan *ui.Manager) *Element {
 	return body
 }
 
+func DocumentAsEmpty(uiMan *ui.Manager) *Document {
+	return &Document{
+		uiMan:         uiMan,
+		Elements:      make([]*Element, 0),
+		groups:        map[string][]*Element{},
+		ids:           map[string]*Element{},
+		classElements: map[string][]*Element{},
+		tagElements:   map[string][]*Element{},
+		HeadElements:  make([]*Element, 0),
+	}
+}
+
 func DocumentFromHTMLString(uiMan *ui.Manager, htmlStr string, withData any, funcMap map[string]func(*Element)) *Document {
 	parsed := &Document{
 		uiMan:         uiMan,

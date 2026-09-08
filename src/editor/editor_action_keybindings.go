@@ -12,7 +12,7 @@ import (
 )
 
 func (ed *Editor) processActionPaletteShortcut(kb *hid.Keyboard) bool {
-	if ed.stageView.IsFlyCameraInputActive() {
+	if ed.wsm.StageView.IsFlyCameraInputActive() {
 		ed.actionPaletteKey.pending = false
 		ed.actionPaletteKey.moved = false
 		return false
@@ -38,10 +38,10 @@ func (ed *Editor) processActionPaletteShortcut(kb *hid.Keyboard) bool {
 			ed.actionPaletteKey.pending = false
 			ed.actionPaletteKey.moved = false
 			if open {
-				ed.Actions().Run(editor_action.Request{
-					ID:     ActionEditorOpenPalette,
-					Source: editor_action.SourceKeybind,
-				})
+				// ed.Actions().Run(editor_action.Request{
+				// 	ID:     ActionEditorOpenPalette,
+				// 	Source: editor_action.SourceKeybind,
+				// })
 				return true
 			}
 		}
@@ -50,18 +50,13 @@ func (ed *Editor) processActionPaletteShortcut(kb *hid.Keyboard) bool {
 }
 
 func (ed *Editor) processActionKeyBindings(kb *hid.Keyboard) bool {
-	if ed.IsInputFocused() || ed.stageView.IsFlyCameraInputActive() {
+	if ed.IsInputFocused() || ed.wsm.StageView.IsFlyCameraInputActive() {
 		return false
 	}
 	for _, binding := range ed.actionBindings() {
-		if !binding.Enabled || binding.Action == ActionEditorOpenPalette {
-			continue
-		}
-		if binding.Workspace != "" {
-			if ed.currentWorkspace == nil || ed.currentWorkspace.ID() != binding.Workspace {
-				continue
-			}
-		}
+		// if !binding.Enabled || binding.Action == ActionEditorOpenPalette {
+		// 	continue
+		// }
 		if !actionBindingMatches(kb, binding.Chord) {
 			continue
 		}

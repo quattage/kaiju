@@ -24,7 +24,7 @@ import (
 // lookup succeeds for "registered" plugin entries.
 type fakePlugin struct{}
 
-func (fakePlugin) Launch(editor_plugin.EditorInterface) error { return nil }
+func (fakePlugin) Launch(editor_plugin.EditorPluginView) error { return nil }
 
 // writePluginFixture creates a plugin folder under dir containing a
 // plugin.json (encoding cfg) and an optional go.mod (when modContents !=

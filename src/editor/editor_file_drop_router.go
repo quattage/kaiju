@@ -12,7 +12,6 @@ import (
 	"slices"
 	"sync"
 
-	"kaijuengine.com/editor/editor_workspace/content_workspace"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -52,10 +51,10 @@ func (ed *Editor) connectFileDropRouter() {
 
 func (ed *Editor) importUnclaimedFileDropAsContent(evt windowing.FileDropEvent) {
 	defer tracing.NewRegion("Editor.importUnclaimedFileDropAsContent").End()
-	ids := content_workspace.ImportPaths(evt.Paths, ed.ProjectFileSystem(), ed.Cache())
-	if len(ids) > 0 {
-		ed.events.OnContentAdded.Execute(ids)
-	}
+	// ids := content_workspace.ImportPaths(evt.Paths, ed.ProjectFileSystem(), ed.Cache())
+	// if len(ids) > 0 {
+	// 	ed.events.OnContentAdded.Execute(ids)
+	// }
 }
 
 func (r *FileDropRouter) StartListeningForWindowFileDrops(host *engine.Host, handleUnclaimedDrop func(evt windowing.FileDropEvent)) {
