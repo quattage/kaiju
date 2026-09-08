@@ -13,6 +13,7 @@ import (
 	"kaijuengine.com/build"
 	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_areas"
+	"kaijuengine.com/editor/editor_areas/defaults/splash_screen"
 	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_logging"
@@ -160,7 +161,7 @@ func (ed *Editor) effectiveRefreshRate(status platformPower.Status) int32 {
 // This is used to start up the engine splash and bootstrap the currently
 // active UI workspace
 func (ed *Editor) initialLoad() {
-	ed.UIWorkspace().Open()
+	ed.UIWorkspace().OpenOverlay(&splash_screen.Type, 50, 50)
 }
 
 func (ed *Editor) postProjectLoad() {

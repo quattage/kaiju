@@ -91,16 +91,27 @@ const TEMP_SET_ContextBarThick int = 25
 const TEMP_SET_MinAreaRatio float32 = 0.1
 
 // OpenOverlay immediately opens a floating window bound to the AreaType at the
-// provided ID, if one exists. Position and size are relative to the top left corner of the window.
-func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy int) {
+// provided ID, if one exists. This Area is given overlay status and as such will
+// float above other UI elements and capture focus. Position and size are relative
+// to the top left corner of the window. Also see OpenOverlayArea to open by
+// AreaType reference rather than by String ID.
+func (wm *WorkspaceManager) OpenOverlayByID(areaID string, posx, posy int) {
 }
 
-func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction SplitDirection, ratio float32) {
+// OpenOverlayArea immediately opens a new Area bound to the provided AreaType.
+// This Area is given overlay status and as such will float above other UI elements
+// and capture focus. Position and size are relative to the top left corner of the
+// window. Also see OpenOverlay to open by String ID rather than AreaType reference.
+func (wm *WorkspaceManager) OpenOverlay(areaToOpen *AreaType, posx, posy int) {
+}
+
+// Opem immediately opens a new Area bound to the
+func (wm *WorkspaceManager) OpenByID(areaID string, parentArea *Area, direction SplitDirection, ratio float32) {
 	areaToOpen := wm.GetAreaType(areaID)
-	wm.openDirectly(areaToOpen, parentArea, direction, ratio)
+	wm.Open(areaToOpen, parentArea, direction, ratio)
 }
 
-func (wm *WorkspaceManager) openDirectly(areaToOpen *AreaType, parentArea *Area, direction SplitDirection, ratio float32) {
+func (wm *WorkspaceManager) Open(areaToOpen *AreaType, parentArea *Area, direction SplitDirection, ratio float32) {
 	if parentArea == nil {
 		parentArea = wm.MainArea
 	}
@@ -115,9 +126,9 @@ func (wm *WorkspaceManager) openDirectly(areaToOpen *AreaType, parentArea *Area,
 	if parentArea.IsComposite() {
 		// under normal circumstances, neither child should ever be null
 		if parentArea.ChildA != nil {
-			wm.openDirectly(areaToOpen, parentArea.ChildA, direction, ratio)
+			wm.Open(areaToOpen, parentArea.ChildA, direction, ratio)
 		} else if parentArea.ChildB != nil {
-			wm.openDirectly(areaToOpen, parentArea.ChildB, direction, ratio)
+			wm.Open(areaToOpen, parentArea.ChildB, direction, ratio)
 		} else {
 			slog.Error(fmt.Sprintf("Failed to open %s with parent %s - the parent area is a composite, but has no children! This indicates that the workspace area tree has been invalidated!", areaToOpen, parentArea))
 		}
