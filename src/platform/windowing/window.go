@@ -62,6 +62,7 @@ type Window struct {
 	dpmmCache                atomic.Uint64 // cached DotsPerMillimeter (float bits); 0 = recompute
 	windowSync               chan struct{}
 	titleBarMode             TitleBarMode
+	titleBarColor            matrix.Color8
 	syncRequest              bool
 	isClosed                 bool
 	isDestroyed              bool
@@ -507,6 +508,10 @@ func (w *Window) SetTitleBarMode(mode TitleBarMode) {
 	w.setTitleBarMode(mode)
 }
 func (w *Window) TitleBarMode() TitleBarMode { return w.getTitleBarMode() }
+
+func (w *Window) SetTitleBarColor(color matrix.Color8) {
+	w.setTitleBarColor(color.R(), color.G(), color.B())
+}
 
 func (w *Window) SetIcon(img image.Image) {
 	if img == nil {

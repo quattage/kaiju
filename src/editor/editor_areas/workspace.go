@@ -1,3 +1,9 @@
+/******************************************************************************/
+/* workspace.go                                                               */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
 package editor_areas
 
 import (
@@ -21,8 +27,16 @@ type WorkspaceManager struct {
 func (wm *WorkspaceManager) Initialize(editor EditorAreaInterface) {
 	wm.editor = editor
 	wm.activeWorkspace = ""
-	wm.finalizeATRegistry()
+	wm.Refresh(editor)
 	wm.SwitchToWorkspace("Default")
+}
+
+// Refresh rebuilds only the necessary elements to bring the workspace
+// up-to-date with the currently configured settings and theme
+func (wm *WorkspaceManager) Refresh(editor EditorAreaInterface) {
+	editor.Host().SetSwapChainClearColor(editor.Theme().BackgroundColor.AsColor())
+	editor.Host().Window.SetTitleBarColor(editor.Theme().BackgroundColor)
+	wm.finalizeATRegistry()
 }
 
 // OpenOverlay creates a new Area of the specified type. If no type exists
@@ -49,14 +63,11 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 	if parentArea == nil {
 		parentArea = wm.MainArea
 	}
-	if areaToOpen.Handler == nil {
-		return nil, fmt.Errorf("%s has no handler!", areaToOpen)
-	}
 	if areaToOpen.Subtype == SubtypeOverlayOnly {
 		return nil, fmt.Errorf("%s isn't dockable!", areaToOpen)
 	}
 	if parentArea.IsComposite() {
-		// under normal circumstances, this will never be hit.
+		// under normal circumstances, this shouldn't be hit.
 		// the recursive call here does mean that the area is looked up redundantly
 		// but since this should be pretty rare it's probably fine. This will only
 		// ever be an issue for areas that are nested very deeply.
@@ -82,7 +93,7 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 		Ratio:          -1,
 	}
 	// the stacking order of the splits uses the sign of the ratio
-	mar := wm.editor.Settings().MinAreaRatio
+	mar := wm.editor.Theme().MinAreaRatio
 	if ratio <= 0 {
 		parentArea.ChildA = areaCopy
 		parentArea.ChildB = newArea
@@ -158,7 +169,7 @@ func (wm *WorkspaceManager) BlurInterface() {
 // and close the deferred registry.
 func (wm *WorkspaceManager) finalizeATRegistry() {
 	if len(deferredAreaTypeRegistry) <= 0 {
-		panic("No area registries exist!")
+		return
 	}
 	if wm.areaTypes == nil {
 		wm.areaTypes = make(map[string]func() AreaType, 32)
@@ -167,6 +178,10 @@ func (wm *WorkspaceManager) finalizeATRegistry() {
 		areaType := factory()
 		if !regex.MatchString(areaType.ID) {
 			slog.Error(fmt.Sprintf("Skipped area registration at ID '%s' - This ID contains invalid characters! (expected %s)", areaType.ID, regex.String()))
+			continue
+		}
+		if areaType.Handler == nil {
+			slog.Error(fmt.Sprintf("Failed to register Area '%s' - Factory failed to supply a Handler!", areaType.ID))
 			continue
 		}
 		_, exists := wm.areaTypes[areaType.ID]

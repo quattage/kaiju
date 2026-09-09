@@ -36,7 +36,7 @@ func TestHostSwapChainClearColor(t *testing.T) {
 		t.Fatalf("default clear color = %v, want %v",
 			host.SwapChainClearColor(), rendering.DefaultSwapChainClearColor())
 	}
-	color := matrix.NewColor(0.2, 0.3, 0.4, 1)
+	color := matrix.NewColor(0.1, 0.4, 0.6, 1)
 	host.SetSwapChainClearColor(color)
 	if !host.SwapChainClearColor().Equals(color) {
 		t.Fatalf("clear color = %v, want %v", host.SwapChainClearColor(), color)

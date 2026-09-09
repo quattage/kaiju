@@ -64,6 +64,7 @@ typedef struct {
 	int mouseX;
 	int mouseY;
 	int titleBarMode; /* last requested mode - used to reapply title bar styling when OS theme changes */
+	COLORREF titleBarColor;
 	bool rawInputFailed;
 	bool rawInputRequested;
 	struct {

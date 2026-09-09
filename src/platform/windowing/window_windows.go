@@ -50,6 +50,7 @@ import (
 #cgo noescape window_disable_raw_mouse
 #cgo noescape window_set_title
 #cgo noescape window_set_title_bar_mode
+#cgo noescape window_set_title_bar_color
 #cgo noescape window_set_cursor_position
 #cgo noescape window_set_icon
 
@@ -263,6 +264,10 @@ func (w *Window) setTitleBarMode(mode TitleBarMode) {
 
 func (w *Window) getTitleBarMode() TitleBarMode {
 	return w.titleBarMode
+}
+
+func (w *Window) setTitleBarColor(r, g, b uint8) {
+	C.window_set_title_bar_color(w.handle, C.uint8_t(r), C.uint8_t(g), C.uint8_t(b))
 }
 
 func (w *Window) setCursorPosition(x, y int) {

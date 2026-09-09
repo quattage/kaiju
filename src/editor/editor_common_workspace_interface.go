@@ -53,6 +53,10 @@ func (ed *Editor) Settings() *editor_settings.Settings {
 	return &ed.settings
 }
 
+func (ed *Editor) Theme() *editor_settings.WorkspaceTheme {
+	return &ed.theme
+}
+
 func (ed *Editor) StageView() *editor_stage_view.StageView {
 	return &ed.wsm.StageView
 }

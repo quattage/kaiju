@@ -35,6 +35,7 @@ func (EditorGame) ContentDatabase() (assets.Database, error) {
 
 func (EditorGame) Launch(host *engine.Host) {
 	defer tracing.NewRegion("EditorGame.Launch").End()
+	slog.Info("Launching Editor")
 	ed := &Editor{
 		host:                   host,
 		sessionDisabledPlugins: map[string]struct{}{},
@@ -43,6 +44,9 @@ func (EditorGame) Launch(host *engine.Host) {
 	host.SetGame(ed)
 	if err := ed.settings.Load(); err != nil {
 		slog.Error("failed to load the settings for the editor", "error", err)
+	}
+	if err := ed.theme.Load(); err != nil {
+		slog.Error("failed to load workspace theme", "error", err)
 	}
 	ed.initializeActions()
 	ed.initializeWebAPI()

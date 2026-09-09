@@ -37,6 +37,7 @@
 /* OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                              */
 /******************************************************************************/
 
+#include <winerror.h>
 #if defined(_WIN32) || defined(_WIN64)
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -91,7 +92,10 @@ static bool user_prefers_dark_mode(void);
 */
 #define UWM_SET_CURSOR            (WM_USER + 0x0001)
 #define UWM_SET_TITLE_BAR_MODE    (WM_USER + 0x0002)
-#define UWM_SET_CURSOR_VISIBILITY (WM_USER + 0x0004)
+#define UWM_SET_TITLE_BAR_COLOR    (WM_USER + 0x0004)
+#define UWM_SET_CURSOR_VISIBILITY (WM_USER + 0x0008)
+
+
 #if KAIJU_ENABLE_FILEDROP
 #define UWM_SET_FILE_DROP         (WM_USER + 0x0003)
 #endif
@@ -1219,6 +1223,16 @@ static void apply_title_bar_mode(HWND hwnd, int mode) {
 	SendMessage(hwnd, WM_NCACTIVATE, (WPARAM)isActive, 0);
 }
 
+void apply_title_bar_color(HWND hwnd, COLORREF color) {
+	HRESULT hr = DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, &color, sizeof(color));
+	if(FAILED(hr)) {
+		return;
+	}
+	BOOL isActive = (GetForegroundWindow() == hwnd || GetActiveWindow() == hwnd) ? TRUE : FALSE;
+	SendMessage(hwnd, WM_NCACTIVATE, (WPARAM)(!isActive), 0);
+	SendMessage(hwnd, WM_NCACTIVATE, (WPARAM)isActive, 0);
+}
+
 void window_set_title_bar_mode(void* hwnd, int mode) {
 	if (hwnd == NULL) {
 		return;
@@ -1237,6 +1251,30 @@ void window_set_title_bar_mode(void* hwnd, int mode) {
 		apply_title_bar_mode(window, mode);
 	} else {
 		PostMessageA(window, UWM_SET_TITLE_BAR_MODE, (WPARAM)mode, 0);
+	}
+}
+
+void window_set_title_bar_color(void* hwnd, uint8_t r, uint8_t g, uint8_t b) {
+	if (hwnd == NULL) {
+		return;
+	}
+	HWND window = (HWND)hwnd;
+	SharedMem* sm = (SharedMem*)GetWindowLongPtrA(window, GWLP_USERDATA);
+	if (sm != NULL) {
+		sm->titleBarColor = RGB(r, g, b);
+	}
+
+	COLORREF color = RGB(r, g, b);
+	DwmSetWindowAttribute((HWND)hwnd, DWMWA_CAPTION_COLOR, &color, sizeof(color));
+
+	// This may be called from another thread. If so, send a message to the
+	// window's thread to update the title bar there. Calling the window API
+	// directly from a worker thread can deadlock.
+	DWORD windowThread = GetWindowThreadProcessId(window, NULL);
+	if (windowThread == GetCurrentThreadId()) {
+		apply_title_bar_color(window, color);
+	} else {
+		PostMessageA(window, UWM_SET_TITLE_BAR_COLOR, (WPARAM)color, 0);
 	}
 }
 

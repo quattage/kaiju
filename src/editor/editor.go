@@ -48,6 +48,7 @@ import (
 type Editor struct {
 	host           *engine.Host
 	settings       editor_settings.Settings
+	theme          editor_settings.WorkspaceTheme
 	project        project.Project
 	logging        editor_logging.Logging
 	history        memento.History
@@ -122,6 +123,14 @@ func (ed *Editor) UpdateSettings() {
 		return
 	}
 	ed.updateWebAPI()
+}
+
+func (ed *Editor) UpdateTheme() {
+	if err := ed.theme.Save(); err != nil {
+		slog.Error("failed to save workspace theme", "error", err)
+		return
+	}
+	ed.UIWorkspace().Refresh(ed)
 }
 
 func (ed *Editor) queryAndCachePowerStatus() platformPower.Status {

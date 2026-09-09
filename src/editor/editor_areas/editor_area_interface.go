@@ -1,3 +1,9 @@
+/******************************************************************************/
+/* editor_area_interface.go                                                   */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
 package editor_areas
 
 import (
@@ -35,6 +41,7 @@ type EditorAreaInterface interface {
 	// Editor services
 	Actions() *editor_action.Service
 	Settings() *editor_settings.Settings
+	Theme() *editor_settings.WorkspaceTheme
 	Events() *editor_events.EditorEvents
 	History() *memento.History
 	Project() *project.Project

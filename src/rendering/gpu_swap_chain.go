@@ -45,7 +45,7 @@ func (g *GPUSwapChain) CopyAndReset() GPUSwapChain {
 // DefaultSwapChainClearColor returns the engine's built-in presented
 // background color used before a game supplies its own.
 func DefaultSwapChainClearColor() matrix.Color {
-	return matrix.ColorZero()
+	return matrix.ColorBlack()
 }
 
 // SetClearColor stores the clear color used by final swap-chain presentation

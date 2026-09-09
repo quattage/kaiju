@@ -81,6 +81,7 @@ void window_enable_raw_mouse(void* hwnd);
 void window_disable_raw_mouse(void* hwnd);
 void window_set_title(void* hwnd, const wchar_t* windowTitle);
 void window_set_title_bar_mode(void* hwnd, int mode);
+void window_set_title_bar_color(void* hwnd, uint8_t r, uint8_t g, uint8_t b);
 void window_set_cursor_position(void* hwnd, int x, int y);
 void window_set_icon(void* hwnd, int width, int height, const uint8_t* pixelData);
 #if KAIJU_ENABLE_FILEDROP
