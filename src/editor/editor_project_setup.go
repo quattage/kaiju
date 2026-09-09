@@ -11,7 +11,6 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/build"
-	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/klib"
@@ -82,26 +81,26 @@ func (ed *Editor) openProject(path string) {
 	kb := &ed.host.Window.Keyboard
 	forceReplace := kb.HasShift() || kb.HasCtrlOrMeta()
 	if projectVersion != EditorVersion || !hasEngineSource || forceReplace {
-		title := "Upgrade project"
-		description := "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding."
-		if projectVersion == EditorVersion {
-			title = "Import engine code"
-			description = "Your project doesn't have the engine source, would you like to import it? This is typical if you don't commit the `kaiju` folder to your repository."
-		}
-		confirm_prompt.Show(ed.host, confirm_prompt.Config{
-			Title:       title,
-			Description: description,
-			ConfirmText: "Yes",
-			CancelText:  "Cancel",
-			OnConfirm: func() {
-				if err := ed.project.TryUpgrade(); err != nil {
-				} else {
-					ed.project.Settings.EditorVersion = EditorVersion
-					ed.project.Settings.Save(ed.ProjectFileSystem())
-					finishLoad()
-				}
-			},
-		})
+		// title := "Upgrade project"
+		// description := "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding."
+		// if projectVersion == EditorVersion {
+		// 	title = "Import engine code"
+		// 	description = "Your project doesn't have the engine source, would you like to import it? This is typical if you don't commit the `kaiju` folder to your repository."
+		// }
+		// confirm_prompt.Show(ed.host, confirm_prompt.Config{
+		// 	Title:       title,
+		// 	Description: description,
+		// 	ConfirmText: "Yes",
+		// 	CancelText:  "Cancel",
+		// 	OnConfirm: func() {
+		// 		if err := ed.project.TryUpgrade(); err != nil {
+		// 		} else {
+		// 			ed.project.Settings.EditorVersion = EditorVersion
+		// 			ed.project.Settings.Save(ed.ProjectFileSystem())
+		// 			finishLoad()
+		// 		}
+		// 	},
+		// })
 	} else {
 		finishLoad()
 	}

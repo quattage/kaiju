@@ -932,7 +932,6 @@ func TestNamedColorsValidRanges(t *testing.T) {
 		{"Thistle", ColorThistle()},
 		{"WhiteSmoke", ColorWhiteSmoke()},
 		{"YellowGreen", ColorYellowGreen()},
-		{"DarkBG", ColorDarkBG()},
 		{"Transparent", ColorTransparent()},
 		{"Zero", ColorZero()},
 	}

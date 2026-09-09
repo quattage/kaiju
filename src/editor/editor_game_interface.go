@@ -39,6 +39,7 @@ func (EditorGame) Launch(host *engine.Host) {
 		host:                   host,
 		sessionDisabledPlugins: map[string]struct{}{},
 	}
+	ed.logging.Initialize(host, host.LogStream)
 	host.SetGame(ed)
 	if err := ed.settings.Load(); err != nil {
 		slog.Error("failed to load the settings for the editor", "error", err)
@@ -62,13 +63,11 @@ func (EditorGame) Launch(host *engine.Host) {
 		})
 	}()
 	ed.UpdateSettings()
-	ed.logging.Initialize(host, host.LogStream)
 	ed.history.Initialize(512)
 	ed.contentPreviewer.Initialize(ed)
 	ed.earlyLoadUI()
 	// Wait 2 frames to blur so the UI is updated properly before being disabled
 	host.RunAfterFrames(2, func() {
-		ed.UIWorkspace().BlurInterface()
 		if build.Debug && engine.LaunchParams.AutoTest {
 			// Auto-test mode: create a temporary test project automatically
 			ed.createProject("AutoTest", "autotestproject", "")

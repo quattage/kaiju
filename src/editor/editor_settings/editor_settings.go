@@ -43,6 +43,12 @@ type Settings struct {
 	BuildTools            BuildToolSettings
 	WebAPI                WebAPISettings                `visible:"false" label:"Web API"`
 	ActionBindings        []editor_action.ActionBinding `visible:"false" label:"Action Bindings"`
+
+	// MinAreaRatio is the smallest ratio value permissable by composite Areas.
+	// This is to ensure that Area splits don't become so small that their content
+	// becomes inacccessible by the end user.
+	MinAreaRatio float32 `default:"0.1" visible:"false"`
+
 	// Workspaces is the persisted enable / visible / order state for every
 	// known workspace, keyed by Workspace.ID(). Slice order is the load /
 	// tab order. The editor's reconcile step on startup adds defaults for

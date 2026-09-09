@@ -20,7 +20,6 @@ import (
 	"kaijuengine.com/editor/codegen"
 	"kaijuengine.com/editor/codegen/entity_data_binding"
 	"kaijuengine.com/editor/editor_events"
-	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/editor/project/project_database/content_database"
@@ -566,34 +565,34 @@ func (m *StageManager) CreateTemplateFromSelected(edEvts *editor_events.EditorEv
 	target := sel[0]
 	if target.StageData.Description.TemplateId != "" {
 		m.editorUI.BlurInterface()
-		confirm_prompt.Show(m.host, confirm_prompt.Config{
-			Title:       "Overwrite template",
-			Description: "The selected is already a template, would you like to overwrite the template? This will update all usages of this template in all stages. If this stage has other instances of this template, they will all be updated and you won't be able to undo beyond this point. Would you like to continue?",
-			ConfirmText: "Yes",
-			CancelText:  "Cancel",
-			OnConfirm: func() {
-				m.editorUI.FocusInterface()
-				// Update the existing template
-				id := target.StageData.Description.TemplateId
-				cc, err := cache.Read(id)
-				if err != nil {
-					slog.Error("failed to read the cache for the existing template id", "id", id, "error", err)
-					return
-				}
-				f, err := fs.Create(content_database.ToContentPath(cc.Path))
-				if err != nil {
-					slog.Error("failed to open the content file for writing", "id", id, "error", err)
-					return
-				}
-				defer f.Close()
-				if err = json.NewEncoder(f).Encode(m.entityToTemplate(target)); err != nil {
-					slog.Error("failed to encode the template to it's file", "id", id, "error", err)
-					return
-				}
-				m.updateExistingTemplateInstances(target, m.host, proj, id)
-			},
-			OnCancel: m.editorUI.FocusInterface,
-		})
+		// confirm_prompt.Show(m.host, confirm_prompt.Config{
+		// 	Title:       "Overwrite template",
+		// 	Description: "The selected is already a template, would you like to overwrite the template? This will update all usages of this template in all stages. If this stage has other instances of this template, they will all be updated and you won't be able to undo beyond this point. Would you like to continue?",
+		// 	ConfirmText: "Yes",
+		// 	CancelText:  "Cancel",
+		// 	OnConfirm: func() {
+		// 		m.editorUI.FocusInterface()
+		// 		// Update the existing template
+		// 		id := target.StageData.Description.TemplateId
+		// 		cc, err := cache.Read(id)
+		// 		if err != nil {
+		// 			slog.Error("failed to read the cache for the existing template id", "id", id, "error", err)
+		// 			return
+		// 		}
+		// 		f, err := fs.Create(content_database.ToContentPath(cc.Path))
+		// 		if err != nil {
+		// 			slog.Error("failed to open the content file for writing", "id", id, "error", err)
+		// 			return
+		// 		}
+		// 		defer f.Close()
+		// 		if err = json.NewEncoder(f).Encode(m.entityToTemplate(target)); err != nil {
+		// 			slog.Error("failed to encode the template to it's file", "id", id, "error", err)
+		// 			return
+		// 		}
+		// 		m.updateExistingTemplateInstances(target, m.host, proj, id)
+		// 	},
+		// 	OnCancel: m.editorUI.FocusInterface,
+		// })
 	} else {
 		tpl := m.entityToTemplate(target)
 		f, err := os.CreateTemp("", "*.template")

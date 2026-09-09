@@ -5,17 +5,19 @@ import (
 	"log/slog"
 	"math"
 	"reflect"
+	"regexp"
 	"runtime"
 
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/matrix"
 )
 
 type AreaHandler interface {
-	Open(area *Area, editor EditorAreaView)
-	Close(area *Area, editor EditorAreaView)
-	FocusInterface(editor EditorAreaView)
-	BlurInterface(editor EditorAreaView)
-	Update(area *Area, editor EditorAreaView, deltaTime float64, posx, posy, width, height int)
+	Open(area *Area, editor EditorAreaInterface)
+	Close(area *Area, editor EditorAreaInterface)
+	FocusInterface(editor EditorAreaInterface)
+	BlurInterface(editor EditorAreaInterface)
+	Update(area *Area, editor EditorAreaInterface, deltaTime float64, posx, posy, width, height int)
 	IsFocusedOnInput() bool
 }
 
@@ -42,7 +44,7 @@ const (
 	// Areas that use OverlayOnly are typically context-dependent
 	// sub-windows with ephemeral state, such as individual context
 	// menus, the color wheel, confirmation prompts, and the action pallette
-	SubtypeOverlay
+	SubtypeOverlayOnly
 )
 
 // The AreaType is a registry construct that exists to convey implementation
@@ -52,7 +54,21 @@ type AreaType struct {
 	ID      string
 	Name    string
 	Handler AreaHandler
+	// this should be a bitflag enum to describe capabilities
 	Subtype AreaSubtype
+}
+
+var deferredAreaTypeRegistry = []func() AreaType{}
+var regex = regexp.MustCompile(`^[a-z_.]+$`)
+
+// Register allows packages to append their own AreaType factories
+// during static initialization.
+func Register(areaType func() AreaType) {
+	if deferredAreaTypeRegistry == nil {
+		slog.Error("Skipped attempt to register an AreaType factory after the registry has closed.")
+		return
+	}
+	deferredAreaTypeRegistry = append(deferredAreaTypeRegistry, areaType)
 }
 
 // AreaTypeComposite is a dedicated, default, registry-specific
@@ -92,6 +108,35 @@ type ContextBar struct {
 	Handler   AreaHandler
 }
 
+// Called by the workspace manager and serializer
+// to set up this Area's manager and panel
+func (a *Area) open(wm *WorkspaceManager) {
+	a.Manager.Init(wm.editor.Host())
+	a.Root = a.Manager.Add().ToPanel()
+	a.Root.Init(nil, ui.ElementTypePanel)
+	// TODO set to default bg color
+	a.Root.SetColor(matrix.ColorAzure())
+	a.Type.Handler.Open(a, wm.editor)
+}
+
+func (a *Area) close() {
+	a.Manager.Shutdown()
+	a.Type = AreaType{
+		ID:      "NIL_CLOSED",
+		Name:    "NIL_CLOSED",
+		Handler: nil,
+		Subtype: SubtypeRestricted,
+	}
+	a.Manager = nil
+	a.Root = nil
+	a.Parent = nil
+	a.ChildA = nil
+	a.ChildB = nil
+	a.SplitDirection = SplitHorizontal
+	a.Ratio = -1
+	a.IsOverlay = false
+}
+
 // "Composite" Areas don't have any UI of their own and instead
 // defer all their functionality to their children.
 func (a *Area) IsComposite() bool {
@@ -101,7 +146,7 @@ func (a *Area) IsComposite() bool {
 // IsDockable returns true if this Area is allowed to
 // be parented to another Area.
 func (a *Area) IsDockable() bool {
-	return a.Type.Subtype != SubtypeOverlay
+	return a.Type.Subtype != SubtypeOverlayOnly
 }
 
 func (a *Area) TakedownLayout() {
@@ -111,7 +156,7 @@ func (a *Area) TakedownLayout() {
 
 // PerformAsChildren selectively recurses into child Areas and runs the supplied function, provided
 // the Area either has its own children or a valid handler.
-func (a *Area) PerformAsChildren(operation func(AreaHandler), editor EditorAreaView) {
+func (a *Area) PerformAsChildren(operation func(AreaHandler), editor EditorAreaInterface) {
 	if a.ChildA != nil && a.ChildB != nil {
 		a.ChildA.PerformAsChildren(operation, editor)
 		a.ChildB.PerformAsChildren(operation, editor)
@@ -122,7 +167,7 @@ func (a *Area) PerformAsChildren(operation func(AreaHandler), editor EditorAreaV
 	}
 }
 
-func (a *Area) Update(editor EditorAreaView, deltaTime float64, posx, posy, width, height int) {
+func (a *Area) Update(editor EditorAreaInterface, deltaTime float64, posx, posy, width, height int) {
 	if a.ChildA != nil && a.ChildB != nil {
 		switch a.SplitDirection {
 		case SplitHorizontal:

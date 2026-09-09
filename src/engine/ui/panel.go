@@ -221,7 +221,7 @@ func (panel *Panel) Init(texture *rendering.Texture, elmType ElementType) {
 	}
 	base := panel.Base()
 	base.init(ts)
-	panel.shaderData.FgColor = matrix.Color{1.0, 1.0, 1.0, 1.0}
+	panel.shaderData.FgColor = matrix.Color{1.0, 0, 0, 1.0}
 	panel.entity.SetChildrenOrdered()
 	if texture != nil {
 		panel.ensureBGExists(texture)

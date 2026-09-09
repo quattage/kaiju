@@ -11,7 +11,6 @@ import (
 	"log/slog"
 	"strings"
 
-	"kaijuengine.com/editor/editor_overlay/confirm_prompt"
 	"kaijuengine.com/editor/editor_plugin"
 	"kaijuengine.com/platform/profiler/tracing"
 )
@@ -79,64 +78,64 @@ func (ed *Editor) validateCompiledPlugins(onResolved func()) {
 		onResolved()
 		return
 	}
-	title, desc := buildValidationModalCopy(missing, stale)
-	if _, err := confirm_prompt.Show(ed.host, confirm_prompt.Config{
-		Title:       title,
-		Description: desc,
-		ConfirmText: "Recompile now",
-		CancelText:  "Continue",
-		OnConfirm: func() {
-			all := availablePluginsFn()
-			enabled := make([]editor_plugin.PluginInfo, 0, len(all))
-			for _, p := range all {
-				if p.Config.Enabled {
-					enabled = append(enabled, p)
-				}
-			}
-			// Pass a logger closure (not nil) so the async build/wait
-			// goroutine can surface failures. The restart path closes
-			// the host on success; on failure the user is already past
-			// the startup window and the project picker is gone, so the
-			// log is the only signal they get.
-			onComplete := func(buildErr error) {
-				if buildErr != nil {
-					slog.Error("editor: async build for startup-modal recompile failed",
-						"error", buildErr)
-				}
-			}
-			if rerr := ed.RecompileWithPlugins(enabled, onComplete); rerr != nil {
-				slog.Error("editor: recompile from startup-modal failed to start; proceeding to project picker",
-					"error", rerr)
-				onResolved()
-				return
-			}
-			// On success, RecompileWithPlugins schedules an async restart
-			// (host.Close + plugin_installer goroutine). Do NOT call
-			// onResolved here — the project picker for THIS process must
-			// not appear; the new process boots and re-runs validation.
-		},
-		OnCancel: func() {
-			// Session-disable only the MISSING plugins so the modal does
-			// not re-fire for them within this process. STALE plugins are
-			// intentionally NOT tracked: they will load with their
-			// currently-compiled (stale) code and the user has explicitly
-			// chosen "Continue" knowing that.
-			for _, m := range missing {
-				mp, mErr := modulePathFromInfo(m)
-				if mErr != nil {
-					slog.Warn("editor: cannot session-disable plugin (no module path); modal may re-appear on next launch",
-						"path", m.Path, "package", m.Config.PackageName, "error", mErr)
-					continue
-				}
-				ed.sessionDisabledPlugins[mp] = struct{}{}
-			}
-			onResolved()
-		},
-	}); err != nil {
-		slog.Error("editor: failed to show startup-validation modal; proceeding to project picker",
-			"error", err)
-		onResolved()
-	}
+	// title, desc := buildValidationModalCopy(missing, stale)
+	// if _, err := confirm_prompt.Show(ed.host, confirm_prompt.Config{
+	// 	Title:       title,
+	// 	Description: desc,
+	// 	ConfirmText: "Recompile now",
+	// 	CancelText:  "Continue",
+	// 	OnConfirm: func() {
+	// 		all := availablePluginsFn()
+	// 		enabled := make([]editor_plugin.PluginInfo, 0, len(all))
+	// 		for _, p := range all {
+	// 			if p.Config.Enabled {
+	// 				enabled = append(enabled, p)
+	// 			}
+	// 		}
+	// 		// Pass a logger closure (not nil) so the async build/wait
+	// 		// goroutine can surface failures. The restart path closes
+	// 		// the host on success; on failure the user is already past
+	// 		// the startup window and the project picker is gone, so the
+	// 		// log is the only signal they get.
+	// 		onComplete := func(buildErr error) {
+	// 			if buildErr != nil {
+	// 				slog.Error("editor: async build for startup-modal recompile failed",
+	// 					"error", buildErr)
+	// 			}
+	// 		}
+	// 		if rerr := ed.RecompileWithPlugins(enabled, onComplete); rerr != nil {
+	// 			slog.Error("editor: recompile from startup-modal failed to start; proceeding to project picker",
+	// 				"error", rerr)
+	// 			onResolved()
+	// 			return
+	// 		}
+	// 		// On success, RecompileWithPlugins schedules an async restart
+	// 		// (host.Close + plugin_installer goroutine). Do NOT call
+	// 		// onResolved here — the project picker for THIS process must
+	// 		// not appear; the new process boots and re-runs validation.
+	// 	},
+	// 	OnCancel: func() {
+	// 		// Session-disable only the MISSING plugins so the modal does
+	// 		// not re-fire for them within this process. STALE plugins are
+	// 		// intentionally NOT tracked: they will load with their
+	// 		// currently-compiled (stale) code and the user has explicitly
+	// 		// chosen "Continue" knowing that.
+	// 		for _, m := range missing {
+	// 			mp, mErr := modulePathFromInfo(m)
+	// 			if mErr != nil {
+	// 				slog.Warn("editor: cannot session-disable plugin (no module path); modal may re-appear on next launch",
+	// 					"path", m.Path, "package", m.Config.PackageName, "error", mErr)
+	// 				continue
+	// 			}
+	// 			ed.sessionDisabledPlugins[mp] = struct{}{}
+	// 		}
+	// 		onResolved()
+	// 	},
+	// }); err != nil {
+	// 	slog.Error("editor: failed to show startup-validation modal; proceeding to project picker",
+	// 		"error", err)
+	// 	onResolved()
+	// }
 }
 
 // buildValidationModalCopy produces the modal title and description text

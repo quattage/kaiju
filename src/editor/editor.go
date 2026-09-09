@@ -13,7 +13,6 @@ import (
 	"kaijuengine.com/build"
 	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_areas"
-	"kaijuengine.com/editor/editor_areas/defaults/splash_screen"
 	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_logging"
@@ -32,6 +31,10 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/textures"
+
+	// we import the default areas so that their initializers are hit
+	_ "kaijuengine.com/editor/editor_areas/defaults/fallback"
+	_ "kaijuengine.com/editor/editor_areas/defaults/splash_screen"
 )
 
 // Editor is the entry point structure for the entire editor. It acts as the
@@ -161,7 +164,7 @@ func (ed *Editor) effectiveRefreshRate(status platformPower.Status) int32 {
 // This is used to start up the engine splash and bootstrap the currently
 // active UI workspace
 func (ed *Editor) initialLoad() {
-	ed.UIWorkspace().OpenOverlay(&splash_screen.Type, 50, 50)
+	ed.UIWorkspace().OpenOverlay("com.kaiju.splash_screen", 50, 50)
 }
 
 func (ed *Editor) postProjectLoad() {

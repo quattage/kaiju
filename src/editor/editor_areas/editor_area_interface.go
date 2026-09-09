@@ -13,7 +13,7 @@ import (
 	"kaijuengine.com/engine"
 )
 
-// EditorAreaView is an interface that provides a view of all editor
+// EditorAreaInterface is an interface that provides a view of all editor
 // functionality to every Area. This is what is provided to each Area
 // during their lifetime functions.
 //
@@ -26,7 +26,7 @@ import (
 //
 // Methods on this interface map 1:1 to methods on the Editor struct so the
 // editor implements the interface implicitly.
-type EditorAreaView interface {
+type EditorAreaInterface interface {
 	// Engine / runtime
 	Host() *engine.Host
 	Cache() *content_database.Cache

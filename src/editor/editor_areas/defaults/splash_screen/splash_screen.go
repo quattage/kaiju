@@ -2,11 +2,15 @@ package splash_screen
 
 import "kaijuengine.com/editor/editor_areas"
 
-var Type = editor_areas.AreaType{
-	ID:      "com.kaiju.area_splash",
-	Name:    "Editor Startup Splash",
-	Handler: &Handler{},
-	Subtype: editor_areas.SubtypeRestricted,
+func init() {
+	editor_areas.Register(func() editor_areas.AreaType {
+		return editor_areas.AreaType{
+			ID:      "com.kaiju.area_splash_screen",
+			Name:    "Editor Splash Screen",
+			Handler: &Handler{},
+			Subtype: editor_areas.SubtypeOverlayOnly,
+		}
+	})
 }
 
 type Handler struct {
@@ -20,22 +24,22 @@ type Handler struct {
 	RecentProjects []string
 }
 
-func (as *Handler) Open(area *editor_areas.Area, editor editor_areas.EditorAreaView) {
+func (as *Handler) Open(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
 	as.RecentProjects = editor.Settings().RecentProjects
 }
 
-func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaView) {
+func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
 }
 
-func (as *Handler) FocusInterface(editor editor_areas.EditorAreaView) {
-
-}
-
-func (as *Handler) BlurInterface(editor editor_areas.EditorAreaView) {
+func (as *Handler) FocusInterface(editor editor_areas.EditorAreaInterface) {
 
 }
 
-func (as *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaView, deltaTime float64, posx, posy, width, height int) {
+func (as *Handler) BlurInterface(editor editor_areas.EditorAreaInterface) {
+
+}
+
+func (as *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height int) {
 	area.Manager.EnableUpdate()
 }
 

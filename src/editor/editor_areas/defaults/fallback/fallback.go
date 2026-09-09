@@ -1,38 +1,43 @@
-package example
+package fallback
 
 import "kaijuengine.com/editor/editor_areas"
 
-// This file contains the minimal definitions required to create and register a
-// valid AreaType and define its UI handler. Plugin authors may find it convenient
-// to copy and modify the contents of this file instead of manually writing the
-// boilerplate.
+// This AreaType definition is used when an AreaType ID can't be located
+// due to a registry/plugin invalidation or workspace de-serialization issue.
 
 func init() {
 	editor_areas.Register(func() editor_areas.AreaType {
 		return editor_areas.AreaType{
-			ID:      "com.kaiju.area_example",
-			Name:    "ExampleArea",
+			ID:      "com.kaiju.area_fallback",
+			Name:    "Fallback",
 			Handler: &Handler{},
-			Subtype: editor_areas.SubtypeRestricted,
+			Subtype: editor_areas.SubtypeDockable,
 		}
 	})
 }
 
-type Handler struct{}
+type Handler struct {
+	// The ID of the AreaType whose failure prompted this Area to load instead
+	FailedID string
+}
 
 func (as *Handler) Open(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
 }
 
 func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
+	area.TakedownLayout()
 }
 
 func (as *Handler) FocusInterface(editor editor_areas.EditorAreaInterface) {
+
 }
 
 func (as *Handler) BlurInterface(editor editor_areas.EditorAreaInterface) {
+
 }
 
 func (as *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height int) {
+
 }
 
 func (as *Handler) IsFocusedOnInput() bool {

@@ -19,10 +19,10 @@ import (
 )
 
 type EditorPlugin interface {
-	Launch(EditorPluginView) error
+	Launch(EditorPluginInterface) error
 }
 
-// EditorPluginView is what plugins receive in their Launch() callback. It is
+// EditorPluginInterface is what plugins receive in their Launch() callback. It is
 // a superset of editor_workspace.WorkspaceEditorInterface — anything a
 // built-in workspace can do, a plugin can do during runtime.
 //
@@ -31,7 +31,7 @@ type EditorPlugin interface {
 // init() (alongside the existing editor.RegisterPlugin call). The editor's
 // reconcile step picks up late registrations on plugin launch and rebuilds
 // the menu bar tab strip.
-type EditorPluginView interface {
+type EditorPluginInterface interface {
 	Host() *engine.Host
 	BlurInterface()
 	FocusInterface()
