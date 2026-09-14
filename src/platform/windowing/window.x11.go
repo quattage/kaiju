@@ -158,6 +158,10 @@ func (w *Window) setSize(width, height int) {
 	C.window_set_size(w.handle, C.int(width), C.int(height))
 }
 
+func (w *Window) setMinimumSize(width, height int) {
+
+}
+
 func (w *Window) showCursor() {
 	C.window_show_cursor(w.handle)
 }
@@ -217,6 +221,7 @@ func (w Window) setTitle(name string) {
 // TODO: placeholder
 func (w *Window) setTitleBarMode(mode TitleBarMode) {}
 func (w *Window) getTitleBarMode() TitleBarMode     { return w.titleBarMode }
+func (w *Window) setTitleBarColor(r, g, b uint8)    {}
 
 func (w Window) setFullscreen() {
 	C.window_set_full_screen(w.handle)

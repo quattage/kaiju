@@ -29,6 +29,7 @@ type FlexDirection = int
 type FlexWrap = int
 type FlexJustify = int
 type FlexAlignContent = int
+type AnchorRelative = int
 
 const (
 	PanelScrollDirectionNone       = 0x00
@@ -1632,22 +1633,36 @@ func (p *Panel) layoutFlexChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 		for itemIdx := range line.items {
 			item := line.items[itemIdx]
 			align := item.ui.Layout().AlignSelf()
+			justify := item.ui.Layout().JustifySelf()
 			if align == FlexAlignAuto {
 				align = pd.flexAlignItems
 			}
 			itemCross := item.cross
 			if align == FlexAlignStretch {
-				itemCross = line.cross - flexCrossMargin(item.margin, row)
+				itemCross = containerCross - flexCrossMargin(item.margin, row)
 				flexSetCrossSize(item.ui, row, itemCross)
 				item.cross = flexCrossSize(flexItemSize(item.ui), row)
 			}
 			crossOffset := flexItemCrossOffset(line.cross, item.cross, item.margin, row, align)
 			if row {
-				x := startX + mainPos + item.margin.Left()
+				var x float32
+				switch justify {
+				case FlexJustifySelfStart:
+					x += startX + item.margin.Left()
+				case FlexJustifySelfCenter:
+					x += startX + (containerMain-item.finalMain-item.margin.Horizontal())*0.5 + item.margin.Left()
+				case FlexJustifySelfEnd:
+					x += startX + containerMain - item.finalMain - item.margin.Right()
+				default:
+					x += startX + mainPos + item.margin.Left()
+				}
 				y := startY + crossPos + crossOffset
 				item.ui.Layout().SetRowLayoutOffset(matrix.NewVec2(x, y))
-				mainPos += item.finalMain + item.margin.Horizontal() + gapMain + extraMainGap
+				if justify == FlexJustifySelfAuto {
+					mainPos += item.finalMain + item.margin.Horizontal() + gapMain + extraMainGap
+				}
 			} else {
+				// FlexJustifySelf is not implemented yet for columns
 				x := startX + crossPos + crossOffset
 				y := startY + mainPos + item.margin.Top()
 				item.ui.Layout().SetRowLayoutOffset(matrix.NewVec2(x, y))

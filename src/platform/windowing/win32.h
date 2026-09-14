@@ -47,6 +47,11 @@ typedef struct {
 	int height;
 } MonitorResolution;
 
+typedef struct {
+    int width;
+    int height;
+} KaijuMinWindowSize;
+
 unsigned int get_toggle_key_state();
 void window_main(const wchar_t* windowTitle,
 	int width, int height, int x, int y, uint64_t goWindow);
@@ -69,6 +74,7 @@ void window_focus(void* hwnd);
 void window_position(void* hwnd, int* x, int* y);
 void window_set_position(void* hwnd, int x, int y);
 void window_set_size(void* hwnd, int width, int height);
+void window_set_minimum_size(void* hwnd, int width, int height);
 void window_remove_border(void* hwnd);
 void window_add_border(void* hwnd);
 void window_show_cursor(void* hwnd);

@@ -16,6 +16,7 @@ const (
 
 type Positioning = int
 type FlexAlign = int
+type FlexJustifySelf = int
 
 const (
 	PositioningStatic = Positioning(iota)
@@ -31,6 +32,13 @@ const (
 	FlexAlignEnd
 	FlexAlignCenter
 	FlexAlignStretch
+)
+
+const (
+	FlexJustifySelfAuto = FlexJustifySelf(iota)
+	FlexJustifySelfStart
+	FlexJustifySelfCenter
+	FlexJustifySelfEnd
 )
 
 type Layout struct {
@@ -54,6 +62,7 @@ type Layout struct {
 	flexBasisPercent bool
 	flexOrder        int
 	alignSelf        FlexAlign
+	justifySelf      FlexJustifySelf
 	positioning      Positioning
 	Stylizer         LayoutStylizer
 	runningStylizer  bool
@@ -89,6 +98,7 @@ func (l *Layout) ClearStyles() {
 	l.flexBasisPercent = false
 	l.flexOrder = 0
 	l.alignSelf = FlexAlignAuto
+	l.justifySelf = FlexJustifySelfAuto
 	l.positioning = PositioningStatic
 }
 
@@ -254,22 +264,23 @@ func (l *Layout) ScaleHeight(height float32) bool {
 	return true
 }
 
-func (l *Layout) Positioning() Positioning { return l.positioning }
-func (l *Layout) Border() matrix.Vec4      { return l.border }
-func (l *Layout) Padding() matrix.Vec4     { return l.padding }
-func (l *Layout) Margin() matrix.Vec4      { return l.margin }
-func (l *Layout) Offset() matrix.Vec2      { return matrix.Vec2{l.offset.X(), l.offset.Y()} }
-func (l *Layout) GridRowStart() int        { return l.gridRowStart }
-func (l *Layout) GridRowEnd() int          { return l.gridRowEnd }
-func (l *Layout) GridColumnStart() int     { return l.gridColumnStart }
-func (l *Layout) GridColumnEnd() int       { return l.gridColumnEnd }
-func (l *Layout) FlexGrow() float32        { return l.flexGrow }
-func (l *Layout) FlexShrink() float32      { return l.flexShrink }
-func (l *Layout) FlexBasis() float32       { return l.flexBasis }
-func (l *Layout) FlexBasisAuto() bool      { return l.flexBasisAuto }
-func (l *Layout) FlexBasisPercent() bool   { return l.flexBasisPercent }
-func (l *Layout) FlexOrder() int           { return l.flexOrder }
-func (l *Layout) AlignSelf() FlexAlign     { return l.alignSelf }
+func (l *Layout) Positioning() Positioning     { return l.positioning }
+func (l *Layout) Border() matrix.Vec4          { return l.border }
+func (l *Layout) Padding() matrix.Vec4         { return l.padding }
+func (l *Layout) Margin() matrix.Vec4          { return l.margin }
+func (l *Layout) Offset() matrix.Vec2          { return matrix.Vec2{l.offset.X(), l.offset.Y()} }
+func (l *Layout) GridRowStart() int            { return l.gridRowStart }
+func (l *Layout) GridRowEnd() int              { return l.gridRowEnd }
+func (l *Layout) GridColumnStart() int         { return l.gridColumnStart }
+func (l *Layout) GridColumnEnd() int           { return l.gridColumnEnd }
+func (l *Layout) FlexGrow() float32            { return l.flexGrow }
+func (l *Layout) FlexShrink() float32          { return l.flexShrink }
+func (l *Layout) FlexBasis() float32           { return l.flexBasis }
+func (l *Layout) FlexBasisAuto() bool          { return l.flexBasisAuto }
+func (l *Layout) FlexBasisPercent() bool       { return l.flexBasisPercent }
+func (l *Layout) FlexOrder() int               { return l.flexOrder }
+func (l *Layout) AlignSelf() FlexAlign         { return l.alignSelf }
+func (l *Layout) JustifySelf() FlexJustifySelf { return l.justifySelf }
 
 func (l *Layout) SetFlexGrow(grow float32) {
 	if grow < 0 {
@@ -329,6 +340,14 @@ func (l *Layout) SetAlignSelf(align FlexAlign) {
 		return
 	}
 	l.alignSelf = align
+	l.ui.layoutChanged(DirtyTypeLayout)
+}
+
+func (l *Layout) SetJustifySelf(justify FlexJustifySelf) {
+	if l.justifySelf == justify {
+		return
+	}
+	l.justifySelf = justify
 	l.ui.layoutChanged(DirtyTypeLayout)
 }
 
@@ -540,6 +559,7 @@ func (l *Layout) initialize(ui *UI) {
 	l.flexShrink = 1
 	l.flexBasisAuto = true
 	l.alignSelf = FlexAlignAuto
+	l.justifySelf = FlexJustifySelfAuto
 	//l.prepare()
 	//l.update()
 }

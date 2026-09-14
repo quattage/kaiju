@@ -55,6 +55,7 @@ type Window struct {
 	x, y                     int
 	width, height            int
 	left, top, right, bottom int // Full window including title and borders
+	minWidth, minHeight      int
 	resetDragDataInFrames    int
 	cursorChangeCount        int
 	cachedScreenSizeWidthMM  int
@@ -433,6 +434,12 @@ func (w *Window) SetSize(width, height int) {
 	w.setSize(width, height)
 	w.width = width
 	w.height = height
+}
+
+func (w *Window) SetMinimumSize(width, height int) {
+	w.setMinimumSize(width, height)
+	w.minWidth = width
+	w.minHeight = height
 }
 
 func (w *Window) RemoveBorder()      { w.removeBorder() }

@@ -11,7 +11,7 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
-	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type WorkspaceManager struct {
@@ -28,14 +28,15 @@ func (wm *WorkspaceManager) Initialize(editor EditorAreaInterface) {
 	wm.editor = editor
 	wm.activeWorkspace = ""
 	wm.Refresh(editor)
-	wm.SwitchToWorkspace("Default")
+	wm.Open("com.kaiju.area_primary", nil, SplitHorizontal, -1)
+	// wm.OpenOverlay("com.kaiju.splash_screen", 50, 50)
 }
 
 // Refresh rebuilds only the necessary elements to bring the workspace
 // up-to-date with the currently configured settings and theme
 func (wm *WorkspaceManager) Refresh(editor EditorAreaInterface) {
-	editor.Host().SetSwapChainClearColor(editor.Theme().BackgroundColor.AsColor())
-	editor.Host().Window.SetTitleBarColor(editor.Theme().BackgroundColor)
+	editor.Host().Window.SetMinimumSize(640, 380)
+	editor.Host().Window.SetTitleBarColor(editor.Theme().ContextBarColor)
 	wm.finalizeATRegistry()
 }
 
@@ -61,6 +62,20 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 		return nil, fmt.Errorf("No such area: '%s'", areaID)
 	}
 	if parentArea == nil {
+		if wm.MainArea == nil {
+			wm.MainArea = &Area{
+				Type:           *areaToOpen,
+				Parent:         nil,
+				ChildA:         nil,
+				ChildB:         nil,
+				SplitDirection: SplitHorizontal,
+				Ratio:          -1,
+				IsOverlay:      false,
+			}
+			slog.Info(fmt.Sprintf("Populated MainArea with %s", areaToOpen))
+			wm.MainArea.openWithPreSize(wm, wm.editor.Host().Window.Width(), wm.editor.Host().Window.Height())
+			return &wm.MainArea.Type.Handler, nil
+		}
 		parentArea = wm.MainArea
 	}
 	if areaToOpen.Subtype == SubtypeOverlayOnly {
@@ -86,7 +101,6 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 	areaCopy.Ratio = -1
 	newArea := &Area{
 		Type:           *areaToOpen,
-		Manager:        &ui.Manager{},
 		Parent:         parentArea,
 		IsOverlay:      areaCopy.IsOverlay,
 		SplitDirection: SplitHorizontal,
@@ -144,7 +158,7 @@ func (wm *WorkspaceManager) Close(areaToClose *Area) {
 			wm.Close(areaToClose.ChildB)
 		}
 	}
-	areaToClose.close()
+	areaToClose.close(wm)
 }
 
 func (wm *WorkspaceManager) FocusInterface() {
@@ -163,6 +177,13 @@ func (wm *WorkspaceManager) BlurInterface() {
 	wm.MainArea.PerformAsChildren(func(handler AreaHandler) {
 		handler.BlurInterface(wm.editor)
 	}, wm.editor)
+}
+
+func (wm *WorkspaceManager) Update(deltaTime float64) {
+	defer tracing.NewRegion("WorkspaceManager.Update").End()
+	if wm.MainArea != nil {
+		wm.MainArea.Update(wm.editor, deltaTime, 0, 0, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()))
+	}
 }
 
 // add all deferred registry entries to the persistent registry

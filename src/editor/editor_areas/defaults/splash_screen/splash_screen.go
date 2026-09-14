@@ -45,8 +45,11 @@ func (as *Handler) BlurInterface(editor editor_areas.EditorAreaInterface) {
 
 }
 
-func (as *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height int) {
-	area.Manager.EnableUpdate()
+func (as *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
+}
+
+func (h *Handler) GetDisplacement(ed editor_areas.EditorAreaInterface, posx, posy, width, height float32) (float32, float32, float32, float32) {
+	return posx, posy, width, height
 }
 
 func (as *Handler) IsFocusedOnInput() bool {

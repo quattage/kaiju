@@ -271,6 +271,15 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			shared_mem_flush_events(sm);
 			break;
 		}
+		case WM_GETMINMAXINFO:
+		{
+			KaijuMinWindowSize* size = (KaijuMinWindowSize*)GetPropW(hwnd, L"KaijuMinWindowSize");
+			if(size == NULL) break;
+			MINMAXINFO* mmi = (MINMAXINFO*)lParam;
+			mmi->ptMinTrackSize.x = size->width;
+			mmi->ptMinTrackSize.y = size->height;
+			break;
+		}
 		case WM_SIZE:
 		{
 			if (sm != NULL) {
@@ -926,6 +935,12 @@ void window_destroy(void* hwnd) {
 		DestroyWindow(hwnd);
 	}
 	free(sm);
+	KaijuMinWindowSize* size =
+    (KaijuMinWindowSize*)GetPropW(hwnd, L"KaijuMinWindowSize");
+	if (size != NULL) {
+		free(size);
+		RemovePropW(hwnd, L"KaijuMinWindowSize");
+	}
 }
 
 void window_cursor_standard(void* hwnd) {
@@ -1046,6 +1061,18 @@ void window_set_position(void* hwnd, int x, int y) {
 
 void window_set_size(void* hwnd, int width, int height) {
 	SetWindowPos(hwnd, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER);
+}
+
+void window_set_minimum_size(void* hwnd, int width, int height) {
+	HWND window = (HWND)hwnd;
+    KaijuMinWindowSize* size = (KaijuMinWindowSize*)malloc(sizeof(KaijuMinWindowSize));
+    size->width = width;
+    size->height = height;
+    KaijuMinWindowSize* old = (KaijuMinWindowSize*)GetPropW(window, L"KaijuMinWindowSize");
+    if (old != NULL) {
+        free(old);
+    }
+    SetPropW(window, L"KaijuMinWindowSize", size);
 }
 
 void window_remove_border(void* hwnd) {

@@ -122,6 +122,10 @@ func (w *Window) setSize(width, height int) {
 	}
 }
 
+func (w *Window) setMinimumSize(width, height int) {
+
+}
+
 func (w *Window) position() (x, y int) {
 	if w.instance == nil {
 		return 0, 0
@@ -271,6 +275,7 @@ func (w *Window) setTitle(title string) {
 // TODO: placeholder
 func (w *Window) setTitleBarMode(mode TitleBarMode) {}
 func (w *Window) getTitleBarMode() TitleBarMode     { return w.titleBarMode }
+func (w *Window) setTitleBarColor(r, g, b uint8)    {}
 
 func (w *Window) setCursorPosition(x, y int) {
 	// C.cocoa_set_cursor_position(w.handle, C.int(x), C.int(y))

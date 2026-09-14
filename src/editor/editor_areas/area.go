@@ -9,10 +9,7 @@ package editor_areas
 import (
 	"fmt"
 	"log/slog"
-	"math"
-	"reflect"
 	"regexp"
-	"runtime"
 
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/matrix"
@@ -23,7 +20,8 @@ type AreaHandler interface {
 	Close(area *Area, editor EditorAreaInterface)
 	FocusInterface(editor EditorAreaInterface)
 	BlurInterface(editor EditorAreaInterface)
-	Update(area *Area, editor EditorAreaInterface, deltaTime float64, posx, posy, width, height int)
+	Update(area *Area, editor EditorAreaInterface, deltaTime float64, posx, posy, width, height float32)
+	GetDisplacement(ed EditorAreaInterface, posx, posy, width, height float32) (float32, float32, float32, float32)
 	IsFocusedOnInput() bool
 }
 
@@ -51,11 +49,15 @@ const (
 	// sub-windows with ephemeral state, such as individual context
 	// menus, the color wheel, confirmation prompts, and the action pallette
 	SubtypeOverlayOnly
+	// Internal indicates that this Area cannot be moved, accessed, docked, or
+	// created. It is only managable by editor or plugin code.
+	SubtypeInternal
 )
 
 // The AreaType is a registry construct that exists to convey implementation
-// specifics to the Area itself. Each discrete Area type (such as the Stage viewport,
-// shader editor, render graph, etc.) will exist as an AreaType.
+// specifics to the Area itself. Each discrete Area type
+// (such as the Stage viewport, shader editor, render graph, etc.)
+// will exist as an AreaType.
 type AreaType struct {
 	ID      string
 	Name    string
@@ -67,8 +69,8 @@ type AreaType struct {
 var deferredAreaTypeRegistry = []func() AreaType{}
 var regex = regexp.MustCompile(`^[a-z_.]+$`)
 
-// Register allows packages to append their own AreaType factories
-// during static initialization.
+// Register allows packages to append their own AreaType factories during
+// static initialization.
 func Register(areaType func() AreaType) {
 	if deferredAreaTypeRegistry == nil {
 		slog.Error("Skipped attempt to register an AreaType factory after the registry has closed.")
@@ -106,26 +108,32 @@ type Area struct {
 	IsOverlay      bool
 }
 
-// The ContextBar is a dedicated, horizontally-aligned strip of UI elements
-// situated at the top or bottom of an Area with its own dedicated handler.
-type ContextBar struct {
-	Parent    *Area
-	Thickness uint32
-	Handler   AreaHandler
+// Called by the workspace manager and serializer to set up this Area's
+// manager and panel
+func (a *Area) open(wm *WorkspaceManager) {
+	a.openWithPreSize(wm, 1, 1)
 }
 
-// Called by the workspace manager and serializer
-// to set up this Area's manager and panel
-func (a *Area) open(wm *WorkspaceManager) {
+func (a *Area) openWithPreSize(wm *WorkspaceManager, width, height int) {
+	a.Manager = &ui.Manager{}
 	a.Manager.Init(wm.editor.Host())
 	a.Root = a.Manager.Add().ToPanel()
 	a.Root.Init(nil, ui.ElementTypePanel)
-	// TODO set to default bg color
-	a.Root.SetColor(matrix.ColorAzure())
+	a.SetBackdropColor(wm.editor.Theme().PanelColor.AsColor())
+	a.Root.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	a.Root.Base().Layout().SetOffset(0, 0)
+	a.Root.Base().Layout().Scale(float32(width), float32(height))
+	a.Root.DontFitContent()
+	a.Root.SetFlex()
+	a.Root.SetFlexDirection(ui.FlexDirectionColumn)
+	a.Root.SetFlexAlignItems(ui.FlexAlignStretch)
+	a.Root.SetFlexJustify(ui.FlexJustifySpaceBetween)
 	a.Type.Handler.Open(a, wm.editor)
+	slog.Debug(fmt.Sprintf("Opened '%s'", a.Type.ID))
 }
 
-func (a *Area) close() {
+func (a *Area) close(wm *WorkspaceManager) {
+	a.Type.Handler.Close(a, wm.editor)
 	a.Manager.Shutdown()
 	a.Type = AreaType{
 		ID:      "NIL_CLOSED",
@@ -143,6 +151,22 @@ func (a *Area) close() {
 	a.IsOverlay = false
 }
 
+func (a *Area) SetHighlighted(highlighted bool) {
+	a.assertInitialized()
+	a.Root.SetOutline(2, 0, matrix.ColorRed())
+}
+
+func (a *Area) SetBackdropColor(color matrix.Color) {
+	a.assertInitialized()
+	a.Root.SetColor(color)
+}
+
+func (a *Area) assertInitialized() {
+	if a.Root == nil || a.Manager == nil {
+		panic("UI audit on uninitialized area")
+	}
+}
+
 // "Composite" Areas don't have any UI of their own and instead
 // defer all their functionality to their children.
 func (a *Area) IsComposite() bool {
@@ -155,39 +179,63 @@ func (a *Area) IsDockable() bool {
 	return a.Type.Subtype != SubtypeOverlayOnly
 }
 
+func (a *Area) Width() float32 {
+	if a.Root == nil {
+		return 0
+	}
+	return a.Root.Base().Entity().Transform.Scale().X()
+}
+
+func (a *Area) Height() float32 {
+	if a.Root == nil {
+		return 0
+	}
+	return a.Root.Base().Entity().Transform.Scale().Y()
+}
+
 func (a *Area) TakedownLayout() {
 	a.Manager.Shutdown()
 	a.Root = nil
 }
 
-// PerformAsChildren selectively recurses into child Areas and runs the supplied function, provided
-// the Area either has its own children or a valid handler.
+// PerformAsChildren selectively recurses into child Areas and runs the
+// supplied function, provided the Area either has its own children or a
+// valid handler.
 func (a *Area) PerformAsChildren(operation func(AreaHandler), editor EditorAreaInterface) {
+	if a.Type.Handler != nil {
+		operation(a.Type.Handler)
+	}
 	if a.ChildA != nil && a.ChildB != nil {
+		if a.ChildA == a || a.ChildB == a {
+			panic("Cycle in Area hierarchy")
+		}
 		a.ChildA.PerformAsChildren(operation, editor)
 		a.ChildB.PerformAsChildren(operation, editor)
-	} else if a.Type.Handler != nil {
-		operation(a.Type.Handler)
-	} else {
-		slog.Error(fmt.Sprintf("Failed to perform operation '%s' on '%s' - This Area has no children or handler!", runtime.FuncForPC(reflect.ValueOf(operation).Pointer()).Name(), a))
 	}
 }
 
-func (a *Area) Update(editor EditorAreaInterface, deltaTime float64, posx, posy, width, height int) {
+func (a *Area) Update(editor EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
+	if a.Root != nil {
+		a.Root.Base().Layout().SetOffset(posx, posy)
+		a.Root.Base().Layout().Scale(width, height)
+	}
+	if a.Type.Handler != nil {
+		a.Type.Handler.Update(a, editor, deltaTime, posx, posy, width, height)
+		posx, posy, width, height = a.Type.Handler.GetDisplacement(editor, posx, posy, width, height)
+	}
 	if a.ChildA != nil && a.ChildB != nil {
+		if a.ChildA == a || a.ChildB == a {
+			panic("Cycle in Area hierarchy")
+		}
 		switch a.SplitDirection {
 		case SplitHorizontal:
-			split := int(math.Round(float64(width) * float64(a.Ratio)))
+			split := width * a.Ratio
 			a.ChildA.Update(editor, deltaTime, posx, posy, split, height)
 			a.ChildB.Update(editor, deltaTime, split, posy, width-split, height)
 		case SplitVertical:
-			split := int(math.Round(float64(height) * float64(a.Ratio)))
+			split := height * a.Ratio
 			a.ChildA.Update(editor, deltaTime, posx, posy, width, height-split)
 			a.ChildB.Update(editor, deltaTime, posx, split, width, height-split)
 		}
-	} else if a.Type.Handler != nil {
-		a.Type.Handler.Update(a, editor, deltaTime, posx, posy, width, height)
-	} else {
-		slog.Error(fmt.Sprintf("Skipped updating Area due to missing handler - %s [%v, %v, %v, %v]", a, posx, posy, width, height))
 	}
 }

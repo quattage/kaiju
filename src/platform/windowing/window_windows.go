@@ -36,6 +36,7 @@ import (
 #cgo noescape window_position
 #cgo noescape window_set_position
 #cgo noescape window_set_size
+#cgo noescape window_set_minimum_size
 #cgo noescape window_remove_border
 #cgo noescape window_add_border
 #cgo noescape window_poll_controller
@@ -210,6 +211,10 @@ func (w *Window) setPosition(x, y int) {
 
 func (w *Window) setSize(width, height int) {
 	C.window_set_size(w.handle, C.int(width), C.int(height))
+}
+
+func (w *Window) setMinimumSize(width, height int) {
+	C.window_set_minimum_size(w.handle, C.int(width), C.int(height))
 }
 
 func (w *Window) removeBorder() {

@@ -24,13 +24,25 @@ type WorkspaceTheme struct {
 	// MinAreaRatio is the smallest ratio value permissable by composite Areas.
 	// This is to ensure that Area splits don't become so small that their content
 	// becomes inacccessible by the end user.
-	MinAreaRatio    float32 `default:"0.1" visible:"false"`
-	BackgroundColor matrix.Color8
+	MinAreaRatio        float32 `default:"0.1" visible:"false"`
+	BackgroundColor     matrix.Color8
+	ContextBarColor     matrix.Color8
+	PanelColor          matrix.Color8
+	PassiveTextColor    matrix.Color8
+	ActiveTextColor     matrix.Color8
+	ContextBarThickness float32
+	FontSize            float32
 }
 
 func (wt *WorkspaceTheme) setDefaults() {
 	wt.MinAreaRatio = 0.1
 	wt.BackgroundColor = matrix.NewColor8(5, 6, 7, 255)
+	wt.ContextBarColor = matrix.NewColor8(9, 12, 15, 255)
+	wt.PanelColor = matrix.NewColor8(14, 16, 18, 255)
+	wt.PassiveTextColor = matrix.NewColor8(154, 168, 159, 255)
+	wt.ActiveTextColor = matrix.NewColor8(224, 226, 226, 255)
+	wt.ContextBarThickness = 1
+	wt.FontSize = 12
 }
 
 // only one theme is supported for now

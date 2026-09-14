@@ -34,6 +34,7 @@ import (
 
 	// we import the default areas so that their initializers are hit
 	_ "kaijuengine.com/editor/editor_areas/defaults/fallback"
+	_ "kaijuengine.com/editor/editor_areas/defaults/primary"
 	_ "kaijuengine.com/editor/editor_areas/defaults/splash_screen"
 )
 
@@ -173,7 +174,12 @@ func (ed *Editor) effectiveRefreshRate(status platformPower.Status) int32 {
 // This is used to start up the engine splash and bootstrap the currently
 // active UI workspace
 func (ed *Editor) initialLoad() {
-	ed.UIWorkspace().OpenOverlay("com.kaiju.splash_screen", 50, 50)
+	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureFilterLinear)
+	if build.Debug && ed.initAutoTest() {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
+	} else {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	}
 }
 
 func (ed *Editor) postProjectLoad() {
@@ -200,11 +206,7 @@ func (ed *Editor) postProjectLoad() {
 	ed.connectFileDropRouter()
 	// goroutine
 	go ed.project.CompileDebug()
-	if build.Debug && ed.initAutoTest() {
-		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
-	} else {
-		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
-	}
+
 	for k, v := range editorPluginRegistry {
 		if err := v.Launch(ed); err != nil {
 			slog.Error("failed to launch plugin", "key", k, "error", err)
@@ -212,12 +214,10 @@ func (ed *Editor) postProjectLoad() {
 		}
 		ed.plugins = append(ed.plugins, v)
 	}
-	// Pre-warm the, quite large, material icons PNG file
-	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureFilterLinear)
 }
 
 func (ed *Editor) update(deltaTime float64) {
-
+	ed.UIWorkspace().Update(deltaTime)
 }
 
 func (ed *Editor) updatePowerState(deltaTime float64) {
