@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/filesystem"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -30,8 +31,9 @@ type WorkspaceTheme struct {
 	PanelColor          matrix.Color8
 	PassiveTextColor    matrix.Color8
 	ActiveTextColor     matrix.Color8
-	ContextBarThickness float32
-	FontSize            float32
+	ContextBarThickness klib.Unit
+	FontSize            klib.Unit
+	OverlayRoundness    klib.Unit
 }
 
 func (wt *WorkspaceTheme) setDefaults() {
@@ -41,8 +43,9 @@ func (wt *WorkspaceTheme) setDefaults() {
 	wt.PanelColor = matrix.NewColor8(14, 16, 18, 255)
 	wt.PassiveTextColor = matrix.NewColor8(154, 168, 159, 255)
 	wt.ActiveTextColor = matrix.NewColor8(224, 226, 226, 255)
-	wt.ContextBarThickness = 1
-	wt.FontSize = 12
+	wt.ContextBarThickness = klib.Pix2MMU(24)
+	wt.FontSize = klib.Pix2MMU(12)
+	wt.OverlayRoundness = klib.Pix2MMU(8)
 }
 
 // only one theme is supported for now

@@ -50,7 +50,7 @@ type Container struct {
 func (c *Container) Label(text string, editor editor_areas.EditorAreaInterface) *ui.Label {
 	newLabel := c.owner.Manager.Add().ToLabel()
 	newLabel.Init(text)
-	newLabel.SetFontSize(editor.Theme().FontSize)
+	newLabel.SetFontSize(editor.Theme().FontSize.FPix())
 	newLabel.SetColor(editor.Theme().ActiveTextColor.AsColor())
 	c.panel.AddChild(newLabel.Base())
 	return newLabel
@@ -67,7 +67,8 @@ type ContextBarElement struct {
 
 func ContextBar(a *editor_areas.Area, editor editor_areas.EditorAreaInterface) ContextBarElement {
 	cbContent := PanelAsRow(a.Manager, editor)
-	cbContent.Base().Layout().Scale(a.Root.Base().Layout().PixelSize().X(), 24*editor.Theme().ContextBarThickness)
+	cbContent.Base().Layout().SetZ(1)
+	cbContent.Base().Layout().Scale(a.Root.Base().Layout().PixelSize().X(), editor.Theme().ContextBarThickness.FPix())
 	cbContent.SetColor(editor.Theme().ContextBarColor.AsColor())
 	a.Root.AddChild(cbContent.Base())
 	output := ContextBarElement{owner: a, panel: cbContent}

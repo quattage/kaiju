@@ -65,7 +65,7 @@ func (wm *WorkspaceManager) LoadWorkspace(config *WorkspaceConfiguration) {
 	newAreas := []*Area{}
 	wm.MainArea = wm.deserializeArea(config.tree, 0, newAreas)
 	for _, area := range newAreas {
-		if !area.IsComposite() && area.Type.Handler != nil {
+		if area.Type.Handler != nil {
 			area.open(wm)
 		}
 	}
@@ -103,14 +103,10 @@ func (wm *WorkspaceManager) deserializeArea(tree []branch, index int16, newAreas
 }
 
 func (a *Area) String() string {
-	ovl := ""
-	if a.IsOverlay {
-		ovl = "(overlay)"
-	}
-	if a.IsComposite() {
-		return fmt.Sprintf("Area[%s, %s, Children: (%s, %s), Split: %f %s]", a.Type.String(), ovl, a.ChildA.Type.String(), a.ChildB.Type.String(), a.Ratio, a.SplitDirection)
+	if a.Type.ID == AreaTypeComposite.ID {
+		return fmt.Sprintf("Area[%s, Children: (%s, %s), Split: %f %s]", a.Type.String(), a.ChildA.Type.String(), a.ChildB.Type.String(), a.Ratio, a.SplitDirection)
 	} else {
-		return fmt.Sprintf("Area[%s, %s]", a.Type.String(), ovl)
+		return fmt.Sprintf("Area[%s]", a.Type.String())
 	}
 }
 
@@ -130,16 +126,5 @@ func (sd SplitDirection) String() string {
 		return "Vertical"
 	default:
 		return fmt.Sprintf("SplitDirection[%d]", sd)
-	}
-}
-
-func (av AreaSubtype) String() string {
-	switch av {
-	case SubtypeDockable:
-		return "Available"
-	case SubtypeRestricted:
-		return "OverlayOnly"
-	default:
-		return fmt.Sprintf("AreaAccessibility[%d]", av)
 	}
 }

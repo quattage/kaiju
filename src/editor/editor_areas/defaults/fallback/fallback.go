@@ -17,13 +17,13 @@ func init() {
 			ID:      "com.kaiju.area_fallback",
 			Name:    "Fallback",
 			Handler: &Handler{},
-			Subtype: editor_areas.SubtypeDockable,
+			Flags:   editor_areas.AreaCapabilityFlagDockable | editor_areas.AreaCapabilityFlagDraggable | editor_areas.AreaCapabilityFlagOverlayable,
 		}
 	})
 }
 
 type Handler struct {
-	// The ID of the AreaType whose failure prompted this Area to load instead
+	// The ID of the AreaType whose failure prompted this handler to be used in its place
 	FailedID string
 }
 
@@ -46,8 +46,12 @@ func (as *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAre
 
 }
 
-func (h *Handler) GetDisplacement(ed editor_areas.EditorAreaInterface, posx, posy, width, height float32) (float32, float32, float32, float32) {
-	return posx, posy, width, height
+func (h *Handler) GetOffsets(ed editor_areas.EditorAreaInterface) (float32, float32, float32, float32) {
+	return 0, 0, 0, 0
+}
+
+func (h *Handler) GetOverlayDimensions() (float32, float32) {
+	return 256, 256
 }
 
 func (as *Handler) IsFocusedOnInput() bool {

@@ -6,7 +6,9 @@
 
 package splash_screen
 
-import "kaijuengine.com/editor/editor_areas"
+import (
+	"kaijuengine.com/editor/editor_areas"
+)
 
 func init() {
 	editor_areas.Register(func() editor_areas.AreaType {
@@ -14,7 +16,7 @@ func init() {
 			ID:      "com.kaiju.area_splash_screen",
 			Name:    "Editor Splash Screen",
 			Handler: &Handler{},
-			Subtype: editor_areas.SubtypeOverlayOnly,
+			Flags:   editor_areas.AreaCapabilityFlagOverlayable,
 		}
 	})
 }
@@ -38,18 +40,20 @@ func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorArea
 }
 
 func (as *Handler) FocusInterface(editor editor_areas.EditorAreaInterface) {
-
 }
 
 func (as *Handler) BlurInterface(editor editor_areas.EditorAreaInterface) {
-
 }
 
 func (as *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
 }
 
-func (h *Handler) GetDisplacement(ed editor_areas.EditorAreaInterface, posx, posy, width, height float32) (float32, float32, float32, float32) {
-	return posx, posy, width, height
+func (h *Handler) GetOffsets(ed editor_areas.EditorAreaInterface) (float32, float32, float32, float32) {
+	return 0, 0, 0, 0
+}
+
+func (h *Handler) GetOverlayDimensions() (float32, float32) {
+	return 1000, 800
 }
 
 func (as *Handler) IsFocusedOnInput() bool {

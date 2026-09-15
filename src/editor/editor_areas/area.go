@@ -21,7 +21,17 @@ type AreaHandler interface {
 	FocusInterface(editor EditorAreaInterface)
 	BlurInterface(editor EditorAreaInterface)
 	Update(area *Area, editor EditorAreaInterface, deltaTime float64, posx, posy, width, height float32)
-	GetDisplacement(ed EditorAreaInterface, posx, posy, width, height float32) (float32, float32, float32, float32)
+	// GetOffsets returns relative pixel measurements [posx, posy, width, height]
+	// to augment the recursive Area tiling layout. Use this to define a boundary
+	// for an Area (such as its top/bottom bars) that the Area tiler won't draw over.
+	// Note that these are raw pixel measurements, so you'll need to do the conversions
+	// yourself to ensure consistency across displays of different pixel densities.
+	GetOffsets(ed EditorAreaInterface) (float32, float32, float32, float32)
+	// GetOverlayDimensions returns the size [width, height] in virtualized milimeters
+	// that the Area content set to by default when it is open as an overlay.
+	// Units are normalized against DPMM and convertex to pixels internally for
+	// consistency across displays
+	GetOverlayDimensions() (float32, float32)
 	IsFocusedOnInput() bool
 }
 
@@ -32,26 +42,26 @@ const (
 	SplitVertical
 )
 
-type AreaSubtype uint8
+type AreaCapabilityFlags = int
 
 const (
-	// Describes Areas that can be manipulated directly by the user
-	// with no restrictions. Most Areas will use this, such
-	// as the Stage Editor, RenderGraph, and Engine Perferences.
-	SubtypeDockable AreaSubtype = iota
-	// Restricted accessibility indicates that the AreaType isn't surfaced
-	// to the user, but can still be freely moved and docked should one be
-	// created elsewhere by editor or plugin code.
-	// This is primarily intended to be used by the AreaTypeComposite type.
-	SubtypeRestricted
-	// OverlayOnly describes Areas that can't be docked or created manually.
-	// Areas that use OverlayOnly are typically context-dependent
-	// sub-windows with ephemeral state, such as individual context
-	// menus, the color wheel, confirmation prompts, and the action pallette
-	SubtypeOverlayOnly
-	// Internal indicates that this Area cannot be moved, accessed, docked, or
-	// created. It is only managable by editor or plugin code.
-	SubtypeInternal
+	// Dockable AreaTypes can be dropped into the primary Area hierarchy
+	// and tiled by the workspcae manager. Most Areas should be dockable, but
+	// some may not desire this. (For example, the splash screen isn't dockable)
+	AreaCapabilityFlagDockable = AreaCapabilityFlags(1 << iota)
+	// Overlayable AreaTypes are permitted to float above the layout.
+	// Various context menus including the color picker are overlayable.
+	AreaCapabilityFlagOverlayable = AreaCapabilityFlags(1 << iota)
+	// Discoverble AreaTypes are surfaced to the game developer in the editor.
+	// The AreaType Selector only includes discoverable areas. If an AreaType
+	// isn't marked as discoverable, the only way it may be opened is via
+	// editor or plugin code.
+	AreaCapabilityFlagDiscoverable = AreaCapabilityFlags(1 << iota)
+	// For standard areas, Draggable indicates that areas using this
+	// AreaType can have their bounds adjusted by dragging with the mouse.
+	// For Overlays, this flag indicates that the entire overlay Area and its
+	// contents can be moved by dragging its header with the mouse.
+	AreaCapabilityFlagDraggable = AreaCapabilityFlags(1 << iota)
 )
 
 // The AreaType is a registry construct that exists to convey implementation
@@ -62,8 +72,7 @@ type AreaType struct {
 	ID      string
 	Name    string
 	Handler AreaHandler
-	// this should be a bitflag enum to describe capabilities
-	Subtype AreaSubtype
+	Flags   AreaCapabilityFlags
 }
 
 var deferredAreaTypeRegistry = []func() AreaType{}
@@ -93,7 +102,7 @@ var AreaTypeComposite = AreaType{
 	ID:      "com.kaiju.area_composite",
 	Name:    "Composite",
 	Handler: nil,
-	Subtype: SubtypeRestricted,
+	Flags:   0,
 }
 
 type Area struct {
@@ -105,16 +114,17 @@ type Area struct {
 	ChildB         *Area
 	SplitDirection SplitDirection
 	Ratio          float32
-	IsOverlay      bool
+	OverlayPX      float32
+	OverlayPY      float32
 }
 
 // Called by the workspace manager and serializer to set up this Area's
 // manager and panel
 func (a *Area) open(wm *WorkspaceManager) {
-	a.openWithPreSize(wm, 1, 1)
+	a.openWithSize(wm, 10, 10)
 }
 
-func (a *Area) openWithPreSize(wm *WorkspaceManager, width, height int) {
+func (a *Area) openWithSize(wm *WorkspaceManager, width, height float32) {
 	a.Manager = &ui.Manager{}
 	a.Manager.Init(wm.editor.Host())
 	a.Root = a.Manager.Add().ToPanel()
@@ -122,7 +132,7 @@ func (a *Area) openWithPreSize(wm *WorkspaceManager, width, height int) {
 	a.SetBackdropColor(wm.editor.Theme().PanelColor.AsColor())
 	a.Root.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	a.Root.Base().Layout().SetOffset(0, 0)
-	a.Root.Base().Layout().Scale(float32(width), float32(height))
+	a.Root.Base().Layout().Scale(float32(height), float32(height))
 	a.Root.DontFitContent()
 	a.Root.SetFlex()
 	a.Root.SetFlexDirection(ui.FlexDirectionColumn)
@@ -139,7 +149,7 @@ func (a *Area) close(wm *WorkspaceManager) {
 		ID:      "NIL_CLOSED",
 		Name:    "NIL_CLOSED",
 		Handler: nil,
-		Subtype: SubtypeRestricted,
+		Flags:   0,
 	}
 	a.Manager = nil
 	a.Root = nil
@@ -148,7 +158,8 @@ func (a *Area) close(wm *WorkspaceManager) {
 	a.ChildB = nil
 	a.SplitDirection = SplitHorizontal
 	a.Ratio = -1
-	a.IsOverlay = false
+	a.OverlayPX = -1
+	a.OverlayPY = -1
 }
 
 func (a *Area) SetHighlighted(highlighted bool) {
@@ -159,24 +170,6 @@ func (a *Area) SetHighlighted(highlighted bool) {
 func (a *Area) SetBackdropColor(color matrix.Color) {
 	a.assertInitialized()
 	a.Root.SetColor(color)
-}
-
-func (a *Area) assertInitialized() {
-	if a.Root == nil || a.Manager == nil {
-		panic("UI audit on uninitialized area")
-	}
-}
-
-// "Composite" Areas don't have any UI of their own and instead
-// defer all their functionality to their children.
-func (a *Area) IsComposite() bool {
-	return a.Type.ID == AreaTypeComposite.ID
-}
-
-// IsDockable returns true if this Area is allowed to
-// be parented to another Area.
-func (a *Area) IsDockable() bool {
-	return a.Type.Subtype != SubtypeOverlayOnly
 }
 
 func (a *Area) Width() float32 {
@@ -196,6 +189,27 @@ func (a *Area) Height() float32 {
 func (a *Area) TakedownLayout() {
 	a.Manager.Shutdown()
 	a.Root = nil
+}
+
+// ConstrainAndScale sets the offset and dimensions of this Area's
+// panel while ensuring that the panel cannot leave the window.
+// The dimensions provided here are normalized against the DPMM of the window.
+func (a *Area) ConstrainAndScale(editor EditorAreaInterface, posx, posy, width, height float32) {
+	if a.Type.Handler == nil {
+		return
+	}
+	a.assertInitialized()
+	maxW := float32(editor.Host().Window.Width())
+	maxH := float32(editor.Host().Window.Height())
+	wx, wy := a.Type.Handler.GetOverlayDimensions()
+	wx = min(max(wx, 256), maxW-24)
+	wy = min(max(wy, 256), maxH-24)
+}
+
+func (a *Area) assertInitialized() {
+	if a.Root == nil || a.Manager == nil {
+		panic("UI audit on uninitialized area")
+	}
 }
 
 // PerformAsChildren selectively recurses into child Areas and runs the
@@ -221,7 +235,11 @@ func (a *Area) Update(editor EditorAreaInterface, deltaTime float64, posx, posy,
 	}
 	if a.Type.Handler != nil {
 		a.Type.Handler.Update(a, editor, deltaTime, posx, posy, width, height)
-		posx, posy, width, height = a.Type.Handler.GetDisplacement(editor, posx, posy, width, height)
+		ox, oy, ds, dy := a.Type.Handler.GetOffsets(editor)
+		posx += ox
+		posy += oy
+		width += ds
+		height += dy
 	}
 	if a.ChildA != nil && a.ChildB != nil {
 		if a.ChildA == a || a.ChildB == a {

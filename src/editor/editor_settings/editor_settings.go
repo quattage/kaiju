@@ -37,6 +37,7 @@ type Settings struct {
 	MeshEditor            string
 	AudioEditor           string
 	UIScrollSpeed         float32 `default:"20" label:"UI Scroll Speed"`
+	UIScale               float32 `default:"1"`
 	ShowGrid              bool    `default:"true" label:"Show Viewport Grid"`
 	EditorCamera          EditorCameraSettings
 	Snapping              SnapSettings
@@ -88,6 +89,7 @@ func (s *Settings) setDefaults() {
 	s.BatteryRefreshRate = 60
 	s.CodeEditor = "code"
 	s.UIScrollSpeed = 20
+	s.UIScale = 1
 	s.ShowGrid = true
 	s.EditorCamera.ZoomSpeed = 120
 	s.EditorCamera.FlySpeed = 10

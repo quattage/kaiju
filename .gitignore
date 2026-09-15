@@ -32,9 +32,7 @@ interpreter/kaiju-*
 .gocache
 
 # Echo
-.echo/autosave.json
-.echo/chat-*.json
-.echo/trajectories/
+.echo/*
 
 # Go pprof files
 heap.prof

@@ -11,6 +11,7 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
+	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
@@ -27,9 +28,15 @@ type WorkspaceManager struct {
 func (wm *WorkspaceManager) Initialize(editor EditorAreaInterface) {
 	wm.editor = editor
 	wm.activeWorkspace = ""
+	klib.ScreenUnitsDPMM = func() float64 {
+		return editor.Host().Window.DotsPerMillimeter()
+	}
+	klib.ScreenUnitsScaleFactor = func() float64 {
+		return float64(editor.Settings().UIScale)
+	}
 	wm.Refresh(editor)
 	wm.Open("com.kaiju.area_primary", nil, SplitHorizontal, -1)
-	// wm.OpenOverlay("com.kaiju.splash_screen", 50, 50)
+	wm.OpenOverlay("com.kaiju.area_splash_screen", -1, -1)
 }
 
 // Refresh rebuilds only the necessary elements to bring the workspace
@@ -40,17 +47,69 @@ func (wm *WorkspaceManager) Refresh(editor EditorAreaInterface) {
 	wm.finalizeATRegistry()
 }
 
+func (wm *WorkspaceManager) UIScale() float64 {
+	return float64(wm.editor.Settings().UIScale)
+}
+
+func (wm *WorkspaceManager) DPMM() float64 {
+	return wm.editor.Host().Window.DotsPerMillimeter()
+}
+
+func (wm *WorkspaceManager) DPMMReference() float64 {
+	return 3.7795275590551185
+}
+
+func (wm *WorkspaceManager) Editor() EditorAreaInterface {
+	return wm.editor
+}
+
 // OpenOverlay creates a new Area of the specified type. If no type exists
 // at the provided registry ID, an error will be returned.
 // This Area is given overlay status and as such will float above other UI elements
 // and capture focus. Position is relative to the top left corner of the overlay
 // panel.
-func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy int) (*AreaHandler, error) {
+func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*AreaHandler, error) {
 	areaToOpen := wm.GetAreaType(areaID)
 	if areaToOpen == nil {
 		return nil, fmt.Errorf("No such area: '%s'", areaID)
 	}
-	return nil, nil
+	if areaToOpen.Flags&AreaCapabilityFlagOverlayable == 0 {
+		return nil, fmt.Errorf("%s isn't overlayable!", areaToOpen)
+	}
+	newArea := &Area{
+		Type:           *areaToOpen,
+		Parent:         nil,
+		ChildA:         nil,
+		ChildB:         nil,
+		SplitDirection: SplitHorizontal,
+		Ratio:          -1,
+	}
+	wx, wy := areaToOpen.Handler.GetOverlayDimensions()
+	wx = klib.MM2Pix(wx)
+	wy = klib.MM2Pix(wy)
+	maxW := float32(wm.editor.Host().Window.Width())
+	maxH := float32(wm.editor.Host().Window.Height())
+	wx = min(max(wx, 128), maxW-24)
+	wy = min(max(wy, 128), maxH-24)
+	if posx < 0 {
+		posx = (maxW - wx) / 2
+	} else {
+		posx = max(0, min(posx, maxW-wx))
+	}
+	if posy < 0 {
+		posy = (maxH - wy) / 2
+	} else {
+		posy = max(0, min(posy, maxH-wy))
+	}
+	newArea.openWithSize(wm, wx, wy)
+	newArea.Root.Base().Layout().SetOffset(posx, posy)
+	newArea.Root.Base().Layout().SetZ(2)
+	newArea.OverlayPX = (posx + wx*0.5) / maxW
+	newArea.OverlayPY = (posy + wy*0.5) / maxH
+	wm.Overlays = append(wm.Overlays, newArea)
+	br := wm.editor.Theme().OverlayRoundness.FPix()
+	newArea.Root.SetBorderRadius(br, br, br, br)
+	return &newArea.Type.Handler, nil
 }
 
 // Open creates, configures, and displays a new Area under the provided parent.
@@ -70,18 +129,19 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 				ChildB:         nil,
 				SplitDirection: SplitHorizontal,
 				Ratio:          -1,
-				IsOverlay:      false,
+				OverlayPX:      -1,
+				OverlayPY:      -1,
 			}
 			slog.Info(fmt.Sprintf("Populated MainArea with %s", areaToOpen))
-			wm.MainArea.openWithPreSize(wm, wm.editor.Host().Window.Width(), wm.editor.Host().Window.Height())
+			wm.MainArea.openWithSize(wm, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()))
 			return &wm.MainArea.Type.Handler, nil
 		}
 		parentArea = wm.MainArea
 	}
-	if areaToOpen.Subtype == SubtypeOverlayOnly {
+	if areaToOpen.Flags&AreaCapabilityFlagDockable == 0 {
 		return nil, fmt.Errorf("%s isn't dockable!", areaToOpen)
 	}
-	if parentArea.IsComposite() {
+	if parentArea.Type.ID == AreaTypeComposite.ID {
 		// under normal circumstances, this shouldn't be hit.
 		// the recursive call here does mean that the area is looked up redundantly
 		// but since this should be pretty rare it's probably fine. This will only
@@ -102,7 +162,8 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 	newArea := &Area{
 		Type:           *areaToOpen,
 		Parent:         parentArea,
-		IsOverlay:      areaCopy.IsOverlay,
+		OverlayPX:      areaCopy.OverlayPX,
+		OverlayPY:      areaCopy.OverlayPY,
 		SplitDirection: SplitHorizontal,
 		Ratio:          -1,
 	}
@@ -151,7 +212,7 @@ func (wm *WorkspaceManager) Close(areaToClose *Area) {
 			return
 		}
 	}
-	if areaToClose.IsComposite() {
+	if areaToClose.Type.ID == AreaTypeComposite.ID {
 		if areaToClose.ChildA != nil {
 			wm.Close(areaToClose.ChildA)
 		} else if areaToClose.ChildB != nil {
@@ -181,8 +242,18 @@ func (wm *WorkspaceManager) BlurInterface() {
 
 func (wm *WorkspaceManager) Update(deltaTime float64) {
 	defer tracing.NewRegion("WorkspaceManager.Update").End()
+	maxW := float32(wm.editor.Host().Window.Width())
+	maxH := float32(wm.editor.Host().Window.Height())
 	if wm.MainArea != nil {
-		wm.MainArea.Update(wm.editor, deltaTime, 0, 0, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()))
+
+		wm.MainArea.Update(wm.editor, deltaTime, 0, 0, maxW, maxH)
+	}
+	for _, area := range wm.Overlays {
+		areaW := area.Width()
+		areaH := area.Height()
+		posx := area.OverlayPX*maxW - areaW*0.5
+		posy := area.OverlayPY*maxH - areaH*0.5
+		area.Update(wm.editor, deltaTime, posx, posy, areaW, areaH)
 	}
 }
 

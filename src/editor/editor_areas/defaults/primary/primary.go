@@ -17,7 +17,7 @@ func init() {
 			ID:      "com.kaiju.area_primary",
 			Name:    "Primary Area",
 			Handler: &Handler{},
-			Subtype: editor_areas.SubtypeInternal,
+			Flags:   0,
 		}
 	})
 }
@@ -48,8 +48,12 @@ func (h *Handler) BlurInterface(ed editor_areas.EditorAreaInterface) {}
 func (h *Handler) Update(area *editor_areas.Area, ed editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
 }
 
-func (h *Handler) GetDisplacement(ed editor_areas.EditorAreaInterface, posx, posy, width, height float32) (float32, float32, float32, float32) {
-	return posx, posy + ed.Theme().ContextBarThickness, width, height - ed.Theme().ContextBarThickness*2
+func (h *Handler) GetOffsets(ed editor_areas.EditorAreaInterface) (float32, float32, float32, float32) {
+	return 0, ed.Theme().ContextBarThickness.FPix(), 0, -ed.Theme().ContextBarThickness.FPix() * 2
+}
+
+func (h *Handler) GetOverlayDimensions() (float32, float32) {
+	return -1, -1
 }
 
 func (h *Handler) IsFocusedOnInput() bool {
