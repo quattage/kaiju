@@ -120,7 +120,7 @@ func createRenderGraphSphere(host *engine.Host, layer rendering.RenderLayerMask)
 	if err != nil {
 		panic("you've probably got the wrong asset database path")
 	}
-	tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+	tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err != nil {
 		panic("you've probably got the wrong asset database path")
 	}

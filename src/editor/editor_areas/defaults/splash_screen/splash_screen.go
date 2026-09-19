@@ -8,6 +8,7 @@ package splash_screen
 
 import (
 	"kaijuengine.com/editor/editor_areas"
+	"kaijuengine.com/editor/editor_areas/layouting"
 )
 
 func init() {
@@ -32,8 +33,12 @@ type Handler struct {
 	RecentProjects []string
 }
 
-func (as *Handler) Open(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
-	as.RecentProjects = editor.Settings().RecentProjects
+func (as *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
+	as.RecentProjects = ed.Settings().RecentProjects
+	bkg := layouting.BackgroundImage(area, ed, "kaiju-splash.png", 256)
+	bkg.Fade(ed, 0.2)
+	layouting.BackgroundImage(area, ed, "kaiju-wordmark.png", 256)
+	layouting.ContextBar(area, ed)
 }
 
 func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {

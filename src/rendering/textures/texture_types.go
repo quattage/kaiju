@@ -15,6 +15,7 @@ const (
 	FileFormatRaw  = rawFileFormat
 )
 
+type SamplerMode = uint8
 type Filter = int
 type MemType = int
 type Dimensions = int
@@ -22,6 +23,7 @@ type Dimensions = int
 type InputType int
 type ColorFormat int
 type Kind uint8
+type Extension uint8
 type Usage uint32
 
 const (
@@ -38,6 +40,13 @@ const (
 	Texture3D
 	TextureCube
 	TextureCubeArray
+)
+
+const (
+	ExtensionRepeat Extension = iota
+	ExtensionExtend
+	ExtensionClip
+	ExtensionMirror
 )
 
 const (
@@ -92,4 +101,11 @@ const (
 	TextureDimensions1
 	TextureDimensions3
 	TextureDimensionsCube
+)
+
+const (
+	TextureSamplerModeRepeat SamplerMode = iota
+	TextureSamplerModeExtend
+	TextureSamplerModeClip
+	TextureSamplerModeMirror
 )

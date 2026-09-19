@@ -375,7 +375,7 @@ func SetupEntityFromDescription(e *engine.Entity, host *engine.Host, se *EntityD
 	}
 	if len(texs) == 0 {
 		tex, err := host.TextureCache().Texture(assets.TextureSquare,
-			textures.TextureFilterLinear)
+			textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 		if err != nil {
 			slog.Error("failed to create the default texture", "error", err)
 		}

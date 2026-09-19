@@ -134,7 +134,7 @@ func (textarea *TextArea) Init(placeholderText string) {
 	p := textarea.Base().ToPanel()
 	man := p.man.Value()
 	host := man.Host
-	tex, _ := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	p.Init(tex, ElementTypeTextArea)
 	p.layout.Scale(textareaDefaultWidth, textareaDefaultHeight)
 	p.DontFitContent()
@@ -654,7 +654,7 @@ func (textarea *TextArea) ensureSelectionPanelIndex(index int) *Panel {
 		return data.selectionPanels[index]
 	}
 	tex, _ := textarea.man.Value().Host.TextureCache().Texture(
-		assets.TextureSquare, textures.TextureFilterLinear)
+		assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	panel := textarea.man.Value().Add().ToPanel()
 	panel.Init(tex, ElementTypePanel)
 	panel.DontFitContent()

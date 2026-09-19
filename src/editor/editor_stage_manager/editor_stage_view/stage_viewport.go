@@ -534,7 +534,7 @@ func (v *StageView) setViewportPlaceholderTexture(viewport *stageRenderViewport)
 		viewport.texture = nil
 		return
 	}
-	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err == nil && tex != nil {
 		if tex == viewport.texture {
 			return

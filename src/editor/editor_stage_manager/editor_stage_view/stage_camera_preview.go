@@ -228,7 +228,7 @@ func (v *StageView) setCameraPreviewPlaceholderTexture() {
 	if v.host == nil || v.cameraPreview.ui == nil || !v.cameraPreview.ui.IsType(ui.ElementTypeImage) {
 		return
 	}
-	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+	tex, err := v.host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err == nil && tex != nil {
 		v.cameraPreview.ui.ToImage().SetTexture(tex)
 	}

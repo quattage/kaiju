@@ -37,7 +37,7 @@ func TestTextureCacheConcurrentRequestsShareSingleLoad(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			<-start
-			allTextures[i], errs[i] = cache.Texture("tex.png", textures.TextureFilterLinear)
+			allTextures[i], errs[i] = cache.Texture("tex.png", textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 		}(i)
 	}
 	close(start)

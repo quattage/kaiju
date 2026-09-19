@@ -95,11 +95,11 @@ func (t *TextureCache) TexturePixels(textureKey string, filter textures.Filter) 
 	return TexturePixelsFromAsset(t.assetDatabase, textureKey)
 }
 
-func (t *TextureCache) Texture(textureKey string, filter textures.Filter) (*Texture, error) {
-	return t.TextureWithPriority(textureKey, filter, TextureUploadPriorityNormal)
+func (t *TextureCache) Texture(textureKey string, samplerMode textures.SamplerMode, filter textures.Filter) (*Texture, error) {
+	return t.TextureWithPriority(textureKey, samplerMode, filter, TextureUploadPriorityNormal)
 }
 
-func (t *TextureCache) TextureWithPriority(textureKey string, filter textures.Filter, priority TextureUploadPriority) (*Texture, error) {
+func (t *TextureCache) TextureWithPriority(textureKey string, samplerMode textures.SamplerMode, filter textures.Filter, priority TextureUploadPriority) (*Texture, error) {
 	defer tracing.NewRegion("TextureCache.Texture").End()
 	textureKey = selectKey(textureKey)
 	t.mutex.Lock()
@@ -122,7 +122,7 @@ func (t *TextureCache) TextureWithPriority(textureKey string, filter textures.Fi
 	t.loading[filter][textureKey] = call
 	t.mutex.Unlock()
 
-	texture, err := NewTexture(t.assetDatabase, textureKey, filter)
+	texture, err := NewTexture(t.assetDatabase, textureKey, samplerMode, filter)
 
 	t.mutex.Lock()
 	if err == nil {

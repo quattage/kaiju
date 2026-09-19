@@ -47,18 +47,6 @@ func (wm *WorkspaceManager) Refresh(editor EditorAreaInterface) {
 	wm.finalizeATRegistry()
 }
 
-func (wm *WorkspaceManager) UIScale() float64 {
-	return float64(wm.editor.Settings().UIScale)
-}
-
-func (wm *WorkspaceManager) DPMM() float64 {
-	return wm.editor.Host().Window.DotsPerMillimeter()
-}
-
-func (wm *WorkspaceManager) DPMMReference() float64 {
-	return 3.7795275590551185
-}
-
 func (wm *WorkspaceManager) Editor() EditorAreaInterface {
 	return wm.editor
 }
@@ -68,7 +56,10 @@ func (wm *WorkspaceManager) Editor() EditorAreaInterface {
 // This Area is given overlay status and as such will float above other UI elements
 // and capture focus. Position is relative to the top left corner of the overlay
 // panel.
-func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*AreaHandler, error) {
+func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Area, error) {
+	if len(wm.areaTypes) <= 0 {
+		panic("Attempted to modify workspace before it finished loading")
+	}
 	areaToOpen := wm.GetAreaType(areaID)
 	if areaToOpen == nil {
 		return nil, fmt.Errorf("No such area: '%s'", areaID)
@@ -89,8 +80,8 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 	wy = klib.MM2Pix(wy)
 	maxW := float32(wm.editor.Host().Window.Width())
 	maxH := float32(wm.editor.Host().Window.Height())
-	wx = min(max(wx, 128), maxW-24)
-	wy = min(max(wy, 128), maxH-24)
+	wx = min(max(wx, 10), maxW-24)
+	wy = min(max(wy, 10), maxH-24)
 	if posx < 0 {
 		posx = (maxW - wx) / 2
 	} else {
@@ -101,21 +92,22 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 	} else {
 		posy = max(0, min(posy, maxH-wy))
 	}
-	newArea.openWithSize(wm, wx, wy)
+	newArea.openWithSize(wm, wx, wy, wm.editor.Theme().OverlayRoundness.FPix())
 	newArea.Root.Base().Layout().SetOffset(posx, posy)
-	newArea.Root.Base().Layout().SetZ(2)
+	newArea.Root.Base().Layout().SetZ(9)
 	newArea.OverlayPX = (posx + wx*0.5) / maxW
 	newArea.OverlayPY = (posy + wy*0.5) / maxH
 	wm.Overlays = append(wm.Overlays, newArea)
-	br := wm.editor.Theme().OverlayRoundness.FPix()
-	newArea.Root.SetBorderRadius(br, br, br, br)
-	return &newArea.Type.Handler, nil
+	return newArea, nil
 }
 
 // Open creates, configures, and displays a new Area under the provided parent.
 // If no AreaType exists at the provided registry ID, an error will be returned.
 // The position of this window is calculated based on nesting.
-func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction SplitDirection, ratio float32) (*AreaHandler, error) {
+func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction SplitDirection, ratio float32) (*Area, error) {
+	if len(wm.areaTypes) <= 0 {
+		panic("Attempted to modify workspace before it finished loading")
+	}
 	areaToOpen := wm.GetAreaType(areaID)
 	if areaToOpen == nil {
 		return nil, fmt.Errorf("No such area: '%s'", areaID)
@@ -133,8 +125,8 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 				OverlayPY:      -1,
 			}
 			slog.Info(fmt.Sprintf("Populated MainArea with %s", areaToOpen))
-			wm.MainArea.openWithSize(wm, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()))
-			return &wm.MainArea.Type.Handler, nil
+			wm.MainArea.openWithSize(wm, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()), 0)
+			return wm.MainArea, nil
 		}
 		parentArea = wm.MainArea
 	}
@@ -195,10 +187,13 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 	parentArea.Type = AreaTypeComposite
 	parentArea.SplitDirection = direction
 	newArea.open(wm)
-	return &newArea.Type.Handler, nil
+	return newArea, nil
 }
 
 func (wm *WorkspaceManager) Close(areaToClose *Area) {
+	if len(wm.areaTypes) <= 0 {
+		panic("Attempted to modify workspace before it finished loading")
+	}
 	if areaToClose == nil {
 		slog.Error("Skipped attempt to close a nil area.")
 	}
@@ -245,7 +240,6 @@ func (wm *WorkspaceManager) Update(deltaTime float64) {
 	maxW := float32(wm.editor.Host().Window.Width())
 	maxH := float32(wm.editor.Host().Window.Height())
 	if wm.MainArea != nil {
-
 		wm.MainArea.Update(wm.editor, deltaTime, 0, 0, maxW, maxH)
 	}
 	for _, area := range wm.Overlays {
@@ -286,6 +280,23 @@ func (wm *WorkspaceManager) finalizeATRegistry() {
 	}
 	deferredAreaTypeRegistry = nil
 }
+
+// // A quick debug helper that places a small floating square above all UI elements
+// // at the provided position.
+// func (wm *WorkspaceManager) RevealPosition(at func() matrix.Vec2) {
+// 	if wm.debugManager == nil {
+// 		wm.debugManager = &ui.Manager{}
+// 		wm.debugManager.Init(wm.editor.Host())
+// 	}
+// 	ds := DebugSquare{
+// 		posGetter: at,
+// 		panel:     wm.debugManager.Add().ToPanel(),
+// 		size:      8,
+// 	}
+// 	ds.panel.Init(nil, ui.ElementTypePanel)
+// 	ds.Update()
+// 	wm.debugs = append(wm.debugs, &ds)
+// }
 
 // GetWorkspace returns the WorkspaceConfiguration mapped to the provided string
 // ID, should one exist. Returns nil otherwise.

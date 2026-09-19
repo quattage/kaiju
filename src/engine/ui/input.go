@@ -108,7 +108,7 @@ func (input *Input) Init(placeholderText string) {
 	p := input.Base().ToPanel()
 	man := p.man.Value()
 	host := man.Host
-	tex, _ := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+	tex, _ := host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	p.Init(tex, ElementTypeInput)
 	p.DontFitContent()
 	p.SetOverflow(OverflowHidden)

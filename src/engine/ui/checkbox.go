@@ -58,7 +58,7 @@ func (cb *Checkbox) Init() {
 	p := base.ToPanel()
 	host := p.man.Value().Host
 	tc := host.TextureCache()
-	tex, _ := tc.Texture(inputAtlas, textures.TextureFilterLinear)
+	tex, _ := tc.Texture(inputAtlas, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	p.Init(tex, ElementTypeCheckbox)
 	p.shaderData.Size2D.SetZ(checkTexSize)
 	p.shaderData.Size2D.SetW(checkTexSize)

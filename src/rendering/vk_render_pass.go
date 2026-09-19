@@ -203,7 +203,7 @@ func (r *RenderPass) setupSubpass(c *RenderPassSubpassDataCompiled, device *GPUD
 	for i := range c.SampledImages {
 		t := &r.textures[c.SampledImages[i]].TextureId
 		if !t.Sampler.IsValid() {
-			t.Sampler, err = device.CreateTextureSampler(t.MipLevels, gpu_types.FilterLinear)
+			t.Sampler, err = device.CreateBasicTextureSampler(t.MipLevels)
 			if err != nil {
 				return err
 			}
@@ -488,7 +488,7 @@ func (p *RenderPass) Recontstruct(device *GPUDevice) error {
 				slog.Error(e, "attachmentIndex", i)
 				return errors.New(e)
 			}
-			p.textures[i].Sampler, err = device.CreateTextureSampler(img.MipLevels, img.Filter)
+			p.textures[i].Sampler, err = device.CreateTextureSampler(img.MipLevels, vulkan_const.SamplerAddressModeRepeat, img.Filter)
 			if err != nil {
 				for j := range i + 1 {
 					device.LogicalDevice.FreeTexture(&p.textures[j].TextureId)

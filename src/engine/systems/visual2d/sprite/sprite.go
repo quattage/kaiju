@@ -53,10 +53,10 @@ type Sprite struct {
 func (s *Sprite) IsValid() bool { return len(s.drawings) > 0 }
 
 func (s *Sprite) Init(x, y, width, height float32, host *engine.Host, texture string, color matrix.Color) {
-	tex, err := host.TextureCache().Texture(texture, sFilter)
+	tex, err := host.TextureCache().Texture(texture, textures.TextureSamplerModeRepeat, sFilter)
 	if err != nil {
 		slog.Error("failed to find the requested texture", "texture", texture)
-		tex, _ = host.TextureCache().Texture(assets.TextureSquare, sFilter)
+		tex, _ = host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, sFilter)
 	}
 	s.InitFromTexture(x, y, width, height, host, tex, color)
 	s.Entity.OnDestroy.Add(func() {
@@ -102,7 +102,7 @@ func (s *Sprite) InitSheet(x, y, width, height float32, host *engine.Host, textu
 	if err != nil {
 		return err
 	}
-	texture, err := host.TextureCache().Texture(textureKey, sFilter)
+	texture, err := host.TextureCache().Texture(textureKey, textures.TextureSamplerModeRepeat, sFilter)
 	if err != nil {
 		return err
 	}

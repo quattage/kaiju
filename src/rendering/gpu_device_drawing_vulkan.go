@@ -301,8 +301,8 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 			}
 			if group.MaterialInstance.ReceivesShadows {
 				for j := range MaxLocalLights {
-				sm := &g.Painter.fallbackShadowMap.TextureId
-				smCube := &g.Painter.fallbackCubeShadowMap.TextureId
+					sm := &g.Painter.fallbackShadowMap.TextureId
+					smCube := &g.Painter.fallbackCubeShadowMap.TextureId
 					if len(shadows) > j {
 						if shadows[j].IsValid() {
 							sm = &shadows[j]
@@ -502,7 +502,7 @@ type combinedTargetSpec struct {
 
 func (g *GPUDevice) combinedTargetSpecs(passes []*RenderPass) []combinedTargetSpec {
 	defer tracing.NewRegion("Vulkan.combinedTargetSpecs").End()
-	blankTex, err := g.Painter.caches.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+	blankTex, err := g.Painter.caches.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err != nil {
 		slog.Error("failed to load fallback combine texture", "error", err)
 		return nil

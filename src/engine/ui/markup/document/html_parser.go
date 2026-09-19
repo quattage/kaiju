@@ -306,7 +306,7 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 					slog.Error("failed to find the JSON for the sprite sheet", "png", pngSrc, "json", jsonSrc)
 					return
 				}
-				if tex, err = host.TextureCache().Texture(pngSrc, textures.TextureFilterLinear); err != nil {
+				if tex, err = host.TextureCache().Texture(pngSrc, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear); err != nil {
 					slog.Error("failed to read the sprite sheet PNG file", "png", pngSrc, "error", err)
 					return
 				}
@@ -316,12 +316,12 @@ func (d *Document) createUIElement(uiMan *ui.Manager, e *Element, parent *ui.Pan
 				}
 				assets.Cache(jsonSrc, []byte(spriteJSON))
 			} else {
-				tex, err = host.TextureCache().Texture(src, textures.TextureFilterLinear)
+				tex, err = host.TextureCache().Texture(src, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 			}
 			missing := err != nil
 			if err != nil {
 				slog.Error(err.Error())
-				tex, _ = host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+				tex, _ = host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 			}
 			img := panel.Base().ToImage()
 			if strings.HasSuffix(src, ".gif") {

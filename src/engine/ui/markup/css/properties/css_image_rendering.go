@@ -30,7 +30,7 @@ func (p ImageRendering) Process(panel *ui.Panel, elm *document.Element, values [
 			return errors.New("Failed to set image rendering, no background created yet, possibly CSS sort order issue")
 		}
 		if tex.Filter != textures.TextureFilterLinear {
-			tex, err = host.TextureCache().Texture(tex.Key, textures.TextureFilterLinear)
+			tex, err = host.TextureCache().Texture(tex.Key, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 			if err == nil {
 				panel.SetBackground(tex)
 			}
@@ -41,7 +41,7 @@ func (p ImageRendering) Process(panel *ui.Panel, elm *document.Element, values [
 			return errors.New("Failed to set image rendering, no background created yet, possibly CSS sort order issue")
 		}
 		if tex.Filter != textures.TextureFilterNearest {
-			tex, err = host.TextureCache().Texture(tex.Key, textures.TextureFilterNearest)
+			tex, err = host.TextureCache().Texture(tex.Key, textures.TextureSamplerModeRepeat, textures.TextureFilterNearest)
 			if err == nil {
 				panel.SetBackground(tex)
 			}

@@ -8,6 +8,7 @@ package gpu_types
 
 type PhysicalDeviceType uint8
 type Filter uint8
+type SamplerMode uint8
 
 const (
 	PhysicalDeviceTypeOther PhysicalDeviceType = iota

@@ -174,7 +174,7 @@ func (ed *Editor) effectiveRefreshRate(status platformPower.Status) int32 {
 // This is used to start up the engine splash and bootstrap the currently
 // active UI workspace
 func (ed *Editor) initialLoad() {
-	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureFilterLinear)
+	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureSamplerModeClip, textures.TextureFilterLinear)
 	if build.Debug && ed.initAutoTest() {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
 	} else {

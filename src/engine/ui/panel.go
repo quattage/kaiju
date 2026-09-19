@@ -918,7 +918,7 @@ func (p *Panel) ensureBGExists(tex *rendering.Texture) {
 		defer tracing.NewRegion("Panel.ensureBGExists").End()
 		if tex == nil {
 			tex, _ = host.TextureCache().Texture(
-				assets.TextureSquare, textures.TextureFilterLinear)
+				assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 		}
 		tex.MipLevels = 1
 		material, err := host.MaterialCache().Material(assets.MaterialDefinitionUI)
@@ -1957,7 +1957,7 @@ func (p *Panel) layoutGridChildren(pd *panelData, offsetStart matrix.Vec2, ps ma
 func (p *Panel) createScrollBar() *Panel {
 	man := p.man.Value()
 	scrollBarTex, _ := man.Host.TextureCache().Texture(
-		assets.TextureSquare, textures.TextureFilterLinear)
+		assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	sb := man.Add().ToPanel()
 	sb.Init(scrollBarTex, ElementTypePanel)
 	sb.DontFitContent()

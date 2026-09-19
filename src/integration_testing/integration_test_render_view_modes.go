@@ -71,7 +71,7 @@ func IntegrationTestRenderViewModes(host *engine.Host) {
 }
 
 func createRenderViewModePreviewLayout(host *engine.Host, uiMan *ui.Manager) (*ui.UI, *ui.UI) {
-	blank, err := host.TextureCache().Texture(assets.TextureBlankSquare, textures.TextureFilterLinear)
+	blank, err := host.TextureCache().Texture(assets.TextureBlankSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err != nil {
 		renderViewModesIntegrationFail("load preview placeholder texture", err)
 	}
@@ -154,7 +154,7 @@ func createRenderViewModeCube(host *engine.Host) {
 	if err != nil {
 		renderViewModesIntegrationFail("load basic material", err)
 	}
-	tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+	tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err != nil {
 		renderViewModesIntegrationFail("load square texture", err)
 	}

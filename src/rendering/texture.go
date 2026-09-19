@@ -40,6 +40,7 @@ type Texture struct {
 	Key               string
 	TexturePixelCache []byte
 	Filter            int
+	SamplerMode       uint8
 	pendingDataMutex  sync.Mutex
 	pendingData       *textures.TextureData
 	hasTransparency   transparencyReadState
@@ -54,10 +55,10 @@ func TextureKeys(textures []*Texture) []string {
 	return keys
 }
 
-func NewTexture(assetDb assets.Database, key string, filter textures.Filter) (*Texture, error) {
+func NewTexture(assetDb assets.Database, key string, samplerMode textures.SamplerMode, filter textures.Filter) (*Texture, error) {
 	defer tracing.NewRegion("rendering.NewTexture").End()
 	key = selectKey(key)
-	tex := &Texture{Key: key, Filter: filter}
+	tex := &Texture{Key: key, SamplerMode: samplerMode, Filter: filter}
 	if assetDb.Exists(key) {
 		if imgBuff, err := assetDb.Read(key); err != nil {
 			return nil, err

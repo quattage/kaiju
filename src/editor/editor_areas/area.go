@@ -118,13 +118,29 @@ type Area struct {
 	OverlayPY      float32
 }
 
+type DebugSquare struct {
+	posGetter func() matrix.Vec2
+	panel     *ui.Panel
+	size      float32
+}
+
+func (ds *DebugSquare) Update() {
+	pos := ds.posGetter()
+	ds.panel.Base().Layout().SetOffset(pos.X()-ds.size/2, pos.Y()-ds.size/2)
+	ds.panel.Base().Layout().Scale(ds.size, ds.size)
+	ds.panel.Base().Layout().SetZ(99)
+	ds.panel.SetColor(matrix.ColorRed())
+	half := ds.size / 2
+	ds.panel.SetBorderRadius(half, half, half, half)
+}
+
 // Called by the workspace manager and serializer to set up this Area's
 // manager and panel
 func (a *Area) open(wm *WorkspaceManager) {
-	a.openWithSize(wm, 10, 10)
+	a.openWithSize(wm, 10, 10, 0)
 }
 
-func (a *Area) openWithSize(wm *WorkspaceManager, width, height float32) {
+func (a *Area) openWithSize(wm *WorkspaceManager, width, height, radius float32) {
 	a.Manager = &ui.Manager{}
 	a.Manager.Init(wm.editor.Host())
 	a.Root = a.Manager.Add().ToPanel()
@@ -132,12 +148,13 @@ func (a *Area) openWithSize(wm *WorkspaceManager, width, height float32) {
 	a.SetBackdropColor(wm.editor.Theme().PanelColor.AsColor())
 	a.Root.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	a.Root.Base().Layout().SetOffset(0, 0)
-	a.Root.Base().Layout().Scale(float32(height), float32(height))
+	a.Root.Base().Layout().Scale(float32(width), float32(height))
 	a.Root.DontFitContent()
 	a.Root.SetFlex()
 	a.Root.SetFlexDirection(ui.FlexDirectionColumn)
 	a.Root.SetFlexAlignItems(ui.FlexAlignStretch)
 	a.Root.SetFlexJustify(ui.FlexJustifySpaceBetween)
+	a.Root.SetBorderRadius(radius, radius, radius, radius)
 	a.Type.Handler.Open(a, wm.editor)
 	slog.Debug(fmt.Sprintf("Opened '%s'", a.Type.ID))
 }
@@ -162,14 +179,19 @@ func (a *Area) close(wm *WorkspaceManager) {
 	a.OverlayPY = -1
 }
 
-func (a *Area) SetHighlighted(highlighted bool) {
-	a.assertInitialized()
-	a.Root.SetOutline(2, 0, matrix.ColorRed())
-}
-
 func (a *Area) SetBackdropColor(color matrix.Color) {
 	a.assertInitialized()
 	a.Root.SetColor(color)
+}
+
+func (a *Area) BackdropColor() matrix.Color {
+	a.assertInitialized()
+	return a.Root.Base().ShaderData().BgColor
+}
+
+func (a *Area) SetOutlineColor(color matrix.Color) {
+	a.assertInitialized()
+	a.Root.SetOutline(2, 0, color)
 }
 
 func (a *Area) Width() float32 {
@@ -191,6 +213,22 @@ func (a *Area) TakedownLayout() {
 	a.Root = nil
 }
 
+func (a *Area) TopLeftCorner() matrix.Vec2 {
+	return a.Root.Base().Layout().PixelPosition()
+}
+
+func (a *Area) TopRightCorner() matrix.Vec2 {
+	return a.TopLeftCorner().Add(matrix.Vec2{a.Root.Base().Layout().PixelSize().X(), 0})
+}
+
+func (a *Area) BottomLeftCorner() matrix.Vec2 {
+	return a.TopLeftCorner().Add(matrix.Vec2{0, a.Root.Base().Layout().PixelSize().Y()})
+}
+
+func (a *Area) BottomRightCorner() matrix.Vec2 {
+	return a.TopLeftCorner().Add(matrix.Vec2{a.Root.Base().Layout().PixelSize().X(), a.Root.Base().Layout().PixelSize().Y()})
+}
+
 // ConstrainAndScale sets the offset and dimensions of this Area's
 // panel while ensuring that the panel cannot leave the window.
 // The dimensions provided here are normalized against the DPMM of the window.
@@ -210,6 +248,10 @@ func (a *Area) assertInitialized() {
 	if a.Root == nil || a.Manager == nil {
 		panic("UI audit on uninitialized area")
 	}
+}
+
+func (a *Area) IsOverlay() bool {
+	return a.OverlayPX > -1 && a.OverlayPY > -1
 }
 
 // PerformAsChildren selectively recurses into child Areas and runs the

@@ -88,7 +88,7 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 			}
 			mTextures := []*rendering.Texture{}
 			for j := range m.Textures {
-				tex, _ := host.TextureCache().Texture(m.Textures[j], textures.TextureFilterLinear)
+				tex, _ := host.TextureCache().Texture(m.Textures[j], textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 				mTextures = append(mTextures, tex)
 			}
 			for j := range s.RenderInfo {
@@ -97,7 +97,7 @@ func (s DrawingSpecification) CreateDrawings(host *engine.Host, info DrawingSpec
 					return drawings, err
 				}
 				for k := len(mTextures); k < len(mat.Textures); k++ {
-					tex, _ := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+					tex, _ := host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 					mTextures = append(mTextures, tex)
 				}
 				for i := range mTextures {

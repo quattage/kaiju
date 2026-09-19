@@ -99,7 +99,7 @@ func newPBRTestSphereDrawing(host *engine.Host) (rendering.Drawing, *shader_data
 	}
 	sTextures := make([]*rendering.Texture, len(textureNames))
 	for i := range textureNames {
-		sTextures[i], err = host.TextureCache().Texture(textureNames[i], textures.TextureFilterLinear)
+		sTextures[i], err = host.TextureCache().Texture(textureNames[i], textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 		if err != nil {
 			panic(err)
 		}

@@ -1,5 +1,5 @@
 /******************************************************************************/
-/* example.go                                                                 */
+/* primary.go                                                                 */
 /******************************************************************************/
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
@@ -23,19 +23,20 @@ func init() {
 }
 
 type Handler struct {
-	tb layouting.ContextBarElement
+	menu_bar   layouting.ContextBarElement
+	status_bar layouting.ContextBarElement
 }
 
 func (h *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
 	area.SetBackdropColor(ed.Theme().BackgroundColor.AsColor())
-	h.tb = layouting.ContextBar(area, ed)
-	h.tb.LeftField().Label("Top Left", ed)
-	h.tb.CenterField().Label("Top Center", ed)
-	h.tb.RightField().Label("Top Right", ed)
-	sb := layouting.ContextBar(area, ed)
-	sb.LeftField().Label("Bottom Left", ed)
-	sb.CenterField().Label("Bottom Center", ed)
-	sb.RightField().Label("Bottom Right", ed)
+	h.menu_bar = layouting.ContextBar(area, ed)
+	h.menu_bar.LeftField().Label(ed, "Top Left")
+	h.menu_bar.CenterField().Label(ed, "Top Center")
+	h.menu_bar.RightField().Label(ed, "Top Right")
+	h.status_bar = layouting.ContextBar(area, ed)
+	h.status_bar.LeftField().Label(ed, "Bottom Left")
+	h.status_bar.CenterField().Label(ed, "Bottom Center")
+	h.status_bar.RightField().Label(ed, "Bottom Right")
 }
 
 func (h *Handler) Close(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {

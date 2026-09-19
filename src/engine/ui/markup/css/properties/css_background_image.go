@@ -31,7 +31,7 @@ func (p BackgroundImage) Process(panel *ui.Panel, elm *document.Element, values 
 	}
 
 	path := strings.TrimSpace(parts[1])
-	tex, err := host.TextureCache().Texture(path, textures.TextureFilterLinear)
+	tex, err := host.TextureCache().Texture(path, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err != nil {
 		return err
 	}

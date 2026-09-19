@@ -52,9 +52,10 @@ func (m *Material) SelectRoot() *Material {
 }
 
 type MaterialTextureData struct {
-	Label   string `static:"true"`
-	Texture string `content:"Texture"`
-	Filter  string `options:"StringVkFilter"`
+	Label       string `static:"true"`
+	Texture     string `content:"Texture"`
+	SamplerMode string `options:"StringVkSamplerMode"`
+	Filter      string `options:"StringVkFilter"`
 }
 
 type MaterialData struct {
@@ -109,6 +110,19 @@ func (d *MaterialTextureData) FilterToVK() textures.Filter {
 		fallthrough
 	default:
 		return textures.TextureFilterLinear
+	}
+}
+
+func (d *MaterialTextureData) SamplerModeToVK() textures.SamplerMode {
+	switch d.Filter {
+	case "Mirror":
+		return textures.TextureSamplerModeMirror
+	case "Clip":
+		return textures.TextureSamplerModeClip
+	case "Extend":
+		return textures.TextureSamplerModeExtend
+	default:
+		return textures.TextureSamplerModeRepeat
 	}
 }
 
@@ -170,8 +184,7 @@ func (d *MaterialData) CompileExt(assets assets.Database, device *GPUDevice, cop
 	c.Shader.pipelineInfo = &c.pipelineInfo
 	c.Shader.renderPass = weak.Make(c.renderPass)
 	for i := range d.Textures {
-		tex, err := device.Painter.caches.TextureCache().Texture(
-			d.Textures[i].Texture, d.Textures[i].FilterToVK())
+		tex, err := device.Painter.caches.TextureCache().Texture(d.Textures[i].Texture, d.Textures[i].SamplerModeToVK(), d.Textures[i].FilterToVK())
 		if err != nil {
 			return c, err
 		}

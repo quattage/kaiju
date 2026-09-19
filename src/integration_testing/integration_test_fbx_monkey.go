@@ -46,9 +46,9 @@ func IntegrationTestFBXMonkey(host *engine.Host) {
 		first = v
 		break
 	}
-	tex, err := host.TextureCache().Texture(first, textures.TextureFilterLinear)
+	tex, err := host.TextureCache().Texture(first, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err != nil {
-		tex, err = host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+		tex, err = host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	}
 	if err != nil {
 		panic(err)

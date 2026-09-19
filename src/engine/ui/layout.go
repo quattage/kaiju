@@ -106,6 +106,17 @@ func (l *Layout) PixelSize() matrix.Vec2 {
 	return l.ui.Entity().Transform.WorldScale().AsVec2()
 }
 
+func (l *Layout) PixelPosition() matrix.Vec2 {
+	parentUI := FirstOnEntity(l.ui.Entity().Parent)
+	if parentUI == nil {
+		pos := l.Ui().entity.Transform.WorldPosition()
+		return pos.AsVec2().Add(l.Offset())
+	}
+	pos := parentUI.Layout().PixelPosition()
+	off := l.rowLayoutOffset
+	return matrix.Vec2{pos.X() + off.X(), pos.Y() + off.Y()}
+}
+
 func (l *Layout) Ui() *UI { return l.ui }
 
 func (l *Layout) CalcOffset() matrix.Vec2 {

@@ -278,7 +278,7 @@ func newRenderTargetColorTexture(device *GPUDevice, options RenderTargetOptions,
 		device.LogicalDevice.FreeTexture(&tex.TextureId)
 		return nil, err
 	}
-	tex.Sampler, err = device.CreateTextureSampler(1, gpu_types.FilterLinear)
+	tex.Sampler, err = device.CreateBasicTextureSampler(1)
 	if err != nil {
 		device.LogicalDevice.FreeTexture(&tex.TextureId)
 		return nil, err
@@ -317,7 +317,7 @@ func newRenderTargetDepthTexture(device *GPUDevice, options RenderTargetOptions,
 		device.LogicalDevice.FreeTexture(&tex.TextureId)
 		return nil, err
 	}
-	tex.Sampler, err = device.CreateTextureSampler(1, gpu_types.FilterLinear)
+	tex.Sampler, err = device.CreateBasicTextureSampler(1)
 	if err != nil {
 		device.LogicalDevice.FreeTexture(&tex.TextureId)
 		return nil, err

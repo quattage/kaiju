@@ -78,14 +78,14 @@ func createDrawings(host *engine.Host, res load_result.Result, materialKey strin
 		mTextures := []*rendering.Texture{}
 		textureKeys := textureKeysForSlots(m.Textures, textureSlots)
 		for i := range textureKeys {
-			tex, err := host.TextureCache().Texture(textureKeys[i], textures.TextureFilterLinear)
+			tex, err := host.TextureCache().Texture(textureKeys[i], textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 			if err != nil {
 				return drawings, fmt.Errorf("failed to load mesh texture %q: %w", textureKeys[i], err)
 			}
 			mTextures = append(mTextures, tex)
 		}
 		for i := len(mTextures); i < minimumTextures; i++ {
-			tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+			tex, err := host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 			if err != nil {
 				return drawings, fmt.Errorf("failed to load fallback texture %q: %w", assets.TextureSquare, err)
 			}

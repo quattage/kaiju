@@ -26,7 +26,7 @@ func commonAttached(host *engine.Host, manager *editor_stage_manager.StageManage
 		return nil
 	}
 	tex, err := host.TextureCache().Texture(
-		"editor/textures/icons/"+iconName, textures.TextureFilterLinear)
+		"editor/textures/icons/"+iconName, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if err != nil {
 		slog.Error("failed to load the gizmo icon", "icon", iconName, "error", err)
 		return nil

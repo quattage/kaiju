@@ -85,6 +85,16 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *textures.TextureDat
 	case textures.TextureFilterNearest:
 		filter = gpu_types.FilterNearest
 	}
+	samplerMode := vulkan_const.SamplerAddressModeRepeat
+	switch texture.SamplerMode {
+	case textures.TextureSamplerModeExtend:
+		samplerMode = vulkan_const.SamplerAddressModeClampToBorder
+	case textures.TextureSamplerModeClip:
+		samplerMode = vulkan_const.SamplerAddressModeClampToEdge
+	case textures.TextureSamplerModeMirror:
+		samplerMode = vulkan_const.SamplerAddressModeMirroredRepeat
+
+	}
 	tile := gpu_types.ImageTilingOptimal
 	use := gpu_types.ImageUsageTransferSrcBit | gpu_types.ImageUsageTransferDstBit | gpu_types.ImageUsageSampledBit
 	props := gpu_types.MemoryPropertyDeviceLocalBit
@@ -175,7 +185,7 @@ func (g *GPUDevice) setupTextureImpl(texture *Texture, data *textures.TextureDat
 	if err != nil {
 		return err
 	}
-	texture.Sampler, err = g.CreateTextureSampler(uint32(mip), filter)
+	texture.Sampler, err = g.CreateTextureSampler(uint32(mip), samplerMode, filter)
 	if err != nil {
 		return err
 	}

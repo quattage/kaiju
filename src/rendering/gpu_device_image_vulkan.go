@@ -85,16 +85,16 @@ func (g *GPUDevice) createImageImpl(id *TextureId, properties gpu_types.MemoryPr
 	return nil
 }
 
-func (g *GPUDevice) createTextureSamplerImpl(mipLevels uint32, filter gpu_types.Filter) (gpu_types.Sampler, error) {
+func (g *GPUDevice) createTextureSamplerImpl(mipLevels uint32, samplerMode vulkan_const.SamplerAddressMode, samplerFilter gpu_types.Filter) (gpu_types.Sampler, error) {
 	defer tracing.NewRegion("GPULogicalDevice.createTextureSamplerImpl").End()
 	var sampler gpu_types.Sampler
 	samplerInfo := vk.SamplerCreateInfo{
 		SType:                   vulkan_const.StructureTypeSamplerCreateInfo,
-		MagFilter:               filter.ToVulkan(),
-		MinFilter:               filter.ToVulkan(),
-		AddressModeU:            vulkan_const.SamplerAddressModeRepeat,
-		AddressModeV:            vulkan_const.SamplerAddressModeRepeat,
-		AddressModeW:            vulkan_const.SamplerAddressModeRepeat,
+		MagFilter:               samplerFilter.ToVulkan(),
+		MinFilter:               samplerFilter.ToVulkan(),
+		AddressModeU:            samplerMode,
+		AddressModeV:            samplerMode,
+		AddressModeW:            samplerMode,
 		MaxAnisotropy:           g.PhysicalDevice.Properties.Limits.MaxSamplerAnisotropy,
 		BorderColor:             vulkan_const.BorderColorIntOpaqueBlack,
 		UnnormalizedCoordinates: vulkan_const.False,
@@ -104,7 +104,7 @@ func (g *GPUDevice) createTextureSamplerImpl(mipLevels uint32, filter gpu_types.
 		MinLod:                  0.0,
 		MaxLod:                  float32(mipLevels + 1),
 	}
-	switch filter {
+	switch samplerFilter {
 	case gpu_types.FilterNearest:
 		samplerInfo.MipmapMode = vulkan_const.SamplerMipmapModeNearest
 		samplerInfo.AnisotropyEnable = vulkan_const.False

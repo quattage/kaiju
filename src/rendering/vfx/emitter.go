@@ -122,9 +122,9 @@ func (e *Emitter) ForceReloadConfig(host *engine.Host) {
 		e.particleData[i].Destroy()
 	}
 	if maxCount > 0 {
-		tex, err := host.TextureCache().Texture(string(e.Config.Texture), textures.TextureFilterLinear)
+		tex, err := host.TextureCache().Texture(string(e.Config.Texture), textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 		if err != nil {
-			tex, _ = host.TextureCache().Texture(assets.TextureSquare, textures.TextureFilterLinear)
+			tex, _ = host.TextureCache().Texture(assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 		}
 		e.particles = make([]Particle, maxCount)
 		e.particleData = make([]shader_data_registry.ShaderDataParticle, cap(e.particles))

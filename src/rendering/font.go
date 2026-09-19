@@ -299,7 +299,7 @@ func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 	defer tracing.NewRegion("FontCache.initFont").End()
 	bin := fontBin{}
 	textureKey := face.string() + ".png"
-	bin.texture, _ = cache.renderCaches.TextureCache().Texture(textureKey, textures.TextureFilterLinear)
+	bin.texture, _ = cache.renderCaches.TextureCache().Texture(textureKey, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	if bin.texture != nil {
 		needsReload := bin.texture.IsValid() && bin.texture.MipLevels != 1
 		bin.texture.MipLevels = 1

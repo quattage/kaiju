@@ -43,7 +43,7 @@ func (s *Slider) Init() {
 	man := p.man.Value()
 	host := man.Host
 	tex, _ := host.TextureCache().Texture(
-		assets.TextureSquare, textures.TextureFilterLinear)
+		assets.TextureSquare, textures.TextureSamplerModeRepeat, textures.TextureFilterLinear)
 	ld.bgPanel = man.Add().ToPanel()
 	ld.bgPanel.Init(tex, ElementTypePanel)
 	ld.bgPanel.layout.Stylizer = LeftStylizer{BasicStylizer{weak.Make(p.Base())}}
