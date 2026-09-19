@@ -35,10 +35,9 @@ type Handler struct {
 
 func (as *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
 	as.RecentProjects = ed.Settings().RecentProjects
-	bkg := layouting.BackgroundImage(area, ed, "kaiju-splash.png", 256)
-	bkg.Fade(ed, 0.2)
-	layouting.BackgroundImage(area, ed, "kaiju-wordmark.png", 256)
-	layouting.ContextBar(area, ed)
+	bkg := layouting.BackgroundImage(area, ed, "kaiju-splash.png", 1)
+	bkg.TopFade(ed, 1, 0.7)
+	layouting.LogoImage(area, ed, "kaiju-wordmark.png", 0.5)
 }
 
 func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
@@ -58,7 +57,7 @@ func (h *Handler) GetOffsets(ed editor_areas.EditorAreaInterface) (float32, floa
 }
 
 func (h *Handler) GetOverlayDimensions() (float32, float32) {
-	return 1000, 800
+	return 700, 800
 }
 
 func (as *Handler) IsFocusedOnInput() bool {

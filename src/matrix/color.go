@@ -365,6 +365,10 @@ func (c Color) ScaleWithoutAlpha(scale float32) Color {
 	return Color{c[R] * scale, c[G] * scale, c[B] * scale, c[A]}
 }
 
+func (c Color) WithAlpha(alpha float32) Color {
+	return Color{c[R], c[G], c[B], alpha}
+}
+
 func (c *Color) MultiplyAssign(other Color) {
 	c[R] *= other[R]
 	c[G] *= other[G]

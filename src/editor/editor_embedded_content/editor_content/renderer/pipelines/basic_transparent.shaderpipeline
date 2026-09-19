@@ -1,6 +1,6 @@
 {"Name":"basic_transparent","InputAssembly":{"Topology":"Triangles","PrimitiveRestart":false},"Rasterization":{"DepthClampEnable":false,"RasterizerDiscardEnable":false,"PolygonMode":"Fill","CullMode":"Back","FrontFace":"CounterClockwise","DepthBiasEnable":false,"DepthBiasConstantFactor":0,"DepthBiasClamp":0,"DepthBiasSlopeFactor":0,"LineWidth":1},"Multisample":{"RasterizationSamples":"1Bit","SampleShadingEnable":true,"MinSampleShading":0.2,"AlphaToCoverageEnable":false,"AlphaToOneEnable":false},"ColorBlendAttachments":[
     
-{"BlendEnable":true,"SrcColorBlendFactor":"One","DstColorBlendFactor":"One","ColorBlendOp":"Add","SrcAlphaBlendFactor":"One","DstAlphaBlendFactor":"One","AlphaBlendOp":"Add","ColorWriteMask":["A","B","G","R"]},
+{"BlendEnable":true,"SrcColorBlendFactor":"One","DstColorBlendFactor":"One","ColorBlendOp":"Add","SrcAlphaBlendFactor":"OneMinusSrcAlpha","DstAlphaBlendFactor":"One","AlphaBlendOp":"Add","ColorWriteMask":["A","B","G","R"]},
 
 {"BlendEnable":true,"SrcColorBlendFactor":"Zero","DstColorBlendFactor":"OneMinusSrcColor","ColorBlendOp":"Add","SrcAlphaBlendFactor":"Zero","DstAlphaBlendFactor":"OneMinusSrcAlpha","AlphaBlendOp":"Add","ColorWriteMask":["A","B","G","R"]}
 

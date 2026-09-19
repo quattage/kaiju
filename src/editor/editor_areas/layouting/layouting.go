@@ -46,7 +46,7 @@ func PanelAsColumn(manager *ui.Manager, editor editor_areas.EditorAreaInterface)
 	return newPanel
 }
 
-func ImagePanel(owner *ui.Panel, manager *ui.Manager, editor editor_areas.EditorAreaInterface, texture string, height float32) *ui.Panel {
+func ImagePanel(owner *ui.Panel, manager *ui.Manager, editor editor_areas.EditorAreaInterface, texture string, ratio float32, blend bool) *ui.Panel {
 	panel := manager.Add().ToPanel()
 	tex, err := editor.Host().TextureCache().Texture(texture, textures.TextureSamplerModeClip, textures.TextureFilterLinear)
 	if err != nil {
@@ -54,16 +54,17 @@ func ImagePanel(owner *ui.Panel, manager *ui.Manager, editor editor_areas.Editor
 		return panel
 	}
 	panel.Init(tex, ui.ElementTypePanel)
-	panel.SetUseBlending(true)
+	if blend {
+		panel.SetUseBlending(true)
+	}
 	panel.SetColor(matrix.ColorWhite())
-	panel.SetBorderSize(0, 0, 0, 0)
-	panel.Base().Layout().SetPadding(0, 0, 0, 0)
-	width := owner.Base().Layout().PixelSize().X()
-	panel.Base().Layout().Scale(width, height)
-	panel.Base().Layout().SetPositioning(ui.PositioningRelative)
+	panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	panel.Base().Layout().SetOffset(0, 0)
+	aspect := panel.Background().Size().Y() / panel.Background().Size().X()
+	width := owner.Base().Layout().PixelSize().X() * ratio
+	panel.Base().Layout().Scale(width, width*aspect)
 	panel.DontFitContent()
-	panel.Base().Layout().SetZ(owner.Base().Layout().Z() + 1)
+	panel.Base().Layout().SetZ(owner.Base().Layout().Z() + float32(owner.Base().Entity().ChildCount()))
 	return panel
 }
 
@@ -82,15 +83,27 @@ func (c *Container) Label(editor editor_areas.EditorAreaInterface, text string) 
 	return newLabel
 }
 
-func (c *Container) Fade(editor editor_areas.EditorAreaInterface, ratio float32) *ui.Panel {
+func (c *Container) TopFade(editor editor_areas.EditorAreaInterface, darkness, ratio float32) *ui.Panel {
 	ps := c.panel.Base().Layout().PixelSize()
-	overlay := ImagePanel(c.panel, c.owner.Manager, editor, "gradient.png", ratio)
-	overlay.SetColor(editor.Theme().PanelColor.AsColor())
+	overlay := ImagePanel(c.panel, c.owner.Manager, editor, "gradient.png", 1, true)
+	overlay.SetColor(matrix.ColorBlack().WithAlpha(darkness))
 	c.panel.AddChild(overlay.Base())
-	overlay.Base().ShaderData().Size2D = matrix.Vec4{0, 0, ps.X(), ps.Y()}
 	height := ps.Y() * ratio
 	overlay.Base().Layout().Scale(ps.X(), height)
 	overlay.Base().Layout().SetOffset(0, ps.Y()-height)
+	overlay.Base().ShaderData().Size2D = matrix.Vec4{0, 0, ps.X(), ps.Y()}
+	return overlay
+}
+
+func (c *Container) BottomFade(editor editor_areas.EditorAreaInterface, darkness, ratio float32) *ui.Panel {
+	ps := c.panel.Base().Layout().PixelSize()
+	overlay := ImagePanel(c.panel, c.owner.Manager, editor, "gradient.png", 1, true)
+	overlay.SetColor(matrix.ColorBlack().WithAlpha(darkness))
+	c.panel.AddChild(overlay.Base())
+	height := ps.Y() * ratio
+	overlay.Base().Layout().Scale(ps.X(), height)
+	overlay.Base().Layout().SetOffset(0, ps.Y()-height)
+	overlay.Base().ShaderData().Size2D = matrix.Vec4{0, 0, ps.X(), ps.Y()}
 	return overlay
 }
 
@@ -128,10 +141,16 @@ func BlankContainer(a *editor_areas.Area, editor editor_areas.EditorAreaInterfac
 	return &Container{owner: a, panel: panel, isColumn: false}
 }
 
-func BackgroundImage(a *editor_areas.Area, editor editor_areas.EditorAreaInterface, texture string, height float32) *Container {
-	panel := ImagePanel(a.Root, a.Manager, editor, texture, height)
+func BackgroundImage(a *editor_areas.Area, editor editor_areas.EditorAreaInterface, texture string, widthRatio float32) *Container {
+	panel := ImagePanel(a.Root, a.Manager, editor, texture, widthRatio, false)
 	a.Root.AddChild(panel.Base())
 	inheritRoundness(panel, a.Root)
+	return &Container{owner: a, panel: panel, isColumn: false}
+}
+
+func LogoImage(a *editor_areas.Area, editor editor_areas.EditorAreaInterface, texture string, widthRatio float32) *Container {
+	panel := ImagePanel(a.Root, a.Manager, editor, texture, widthRatio, true)
+	a.Root.AddChild(panel.Base())
 	return &Container{owner: a, panel: panel, isColumn: false}
 }
 
