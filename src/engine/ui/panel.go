@@ -871,6 +871,19 @@ func (p *Panel) SetColor(bgColor matrix.Color) {
 	p.setColorInternal(bgColor)
 }
 
+func (p *Panel) SetOpacity(fac float32) {
+	if fac >= 1 {
+		fac = 1
+		p.SetUseBlending(false)
+	} else {
+		if fac < 0 {
+			fac = 0
+		}
+		p.SetUseBlending(true)
+	}
+	p.SetColor(p.Color().WithAlpha(fac))
+}
+
 func (p *Panel) SetScrollX(value float32) {
 	pd := p.PanelData()
 	pd.requestScrollX.to = value

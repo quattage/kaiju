@@ -248,6 +248,7 @@ func (label *Label) renderText() {
 			if ld.transparentBG {
 				// Use the opaque shader as a glyph cutout: it discards the
 				// transparent background and writes opaque foreground pixels.
+				// rd.Material = host.FontCache().TransparentMaterial(rd.Material)
 				rd.Material = host.FontCache().OpaqueMaterial(rd.Material)
 			}
 			ld.runeShaderData[i] = rd.ShaderData.(*rendering.TextShaderData)

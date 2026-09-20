@@ -11,6 +11,7 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/build"
+	"kaijuengine.com/editor/editor_embedded_content/versions"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/klib"
@@ -21,7 +22,7 @@ func CreateNewProjectFromCLI(path string) {
 	if build.Editor {
 		proj := project.Project{}
 		templatePath := engine.LaunchParams.ProjectTemplate
-		if err := proj.Initialize(path, templatePath, EditorVersion); err != nil {
+		if err := proj.Initialize(path, templatePath, versions.Editor); err != nil {
 			slog.Error("failed to create the project", "error", err, "path", path)
 			return
 		}
@@ -47,7 +48,7 @@ func (ed *Editor) setProjectName(name string) {
 
 func (ed *Editor) createProject(name, path, templatePath string) {
 	defer tracing.NewRegion("Editor.createProject").End()
-	err := ed.project.Initialize(path, templatePath, EditorVersion)
+	err := ed.project.Initialize(path, templatePath, versions.Editor)
 	if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
 		slog.Error("failed to create the project", "error", err)
 		return
@@ -80,7 +81,7 @@ func (ed *Editor) openProject(path string) {
 	// bumping the engine version to do the same thing (or deleting kaiju src)
 	kb := &ed.host.Window.Keyboard
 	forceReplace := kb.HasShift() || kb.HasCtrlOrMeta()
-	if projectVersion != EditorVersion || !hasEngineSource || forceReplace {
+	if projectVersion != versions.Editor || !hasEngineSource || forceReplace {
 		// title := "Upgrade project"
 		// description := "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding."
 		// if projectVersion == EditorVersion {
