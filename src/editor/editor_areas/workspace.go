@@ -43,7 +43,8 @@ func (wm *WorkspaceManager) Initialize(editor EditorAreaInterface) {
 // up-to-date with the currently configured settings and theme
 func (wm *WorkspaceManager) Refresh(editor EditorAreaInterface) {
 	editor.Host().Window.SetMinimumSize(640, 380)
-	editor.Host().Window.SetTitleBarColor(editor.Theme().ContextBarColor)
+	editor.Host().Window.SetTitleBarColor(editor.Theme().ColorContextBar.AsColor8())
+	editor.Theme().MarkGlobalCSSDirty()
 	wm.finalizeATRegistry()
 }
 
@@ -92,7 +93,7 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 	} else {
 		posy = max(0, min(posy, maxH-wy))
 	}
-	newArea.openWithSize(wm, wx, wy, wm.editor.Theme().OverlayRoundness.FPix())
+	newArea.openWithSize(wm, wx, wy, wm.editor.Theme().SizeRadiusGlobal)
 	newArea.Root.Base().Layout().SetOffset(posx, posy)
 	newArea.Root.Base().Layout().SetZ(9)
 	newArea.OverlayPX = (posx + wx*0.5) / maxW
@@ -160,7 +161,7 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 		Ratio:          -1,
 	}
 	// the stacking order of the splits uses the sign of the ratio
-	mar := wm.editor.Theme().MinAreaRatio
+	mar := wm.editor.Theme().SizeAreaMinimum
 	if ratio <= 0 {
 		parentArea.ChildA = areaCopy
 		parentArea.ChildB = newArea

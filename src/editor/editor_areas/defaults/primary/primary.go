@@ -28,7 +28,7 @@ type Handler struct {
 }
 
 func (h *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
-	area.SetBackdropColor(ed.Theme().BackgroundColor.AsColor())
+	area.SetBackdropColor(ed.Theme().ColorBackground)
 	h.menu_bar = layouting.ContextBar(area, ed)
 	h.menu_bar.LeftField().Label(ed, "Top Left")
 	h.menu_bar.CenterField().Label(ed, "Top Center")
@@ -50,7 +50,7 @@ func (h *Handler) Update(area *editor_areas.Area, ed editor_areas.EditorAreaInte
 }
 
 func (h *Handler) GetOffsets(ed editor_areas.EditorAreaInterface) (float32, float32, float32, float32) {
-	return 0, ed.Theme().ContextBarThickness.FPix(), 0, -ed.Theme().ContextBarThickness.FPix() * 2
+	return 0, ed.Theme().SizeContextBar, 0, -ed.Theme().SizeContextBar * 2
 }
 
 func (h *Handler) GetOverlayDimensions() (float32, float32) {

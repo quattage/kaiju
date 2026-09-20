@@ -73,16 +73,15 @@ func ImagePanel(owner *ui.Panel, manager *ui.Manager, editor editor_areas.Editor
 }
 
 type Container struct {
-	owner    *editor_areas.Area
-	panel    *ui.Panel
-	isColumn bool
+	owner *editor_areas.Area
+	panel *ui.Panel
 }
 
 func (c *Container) Label(editor editor_areas.EditorAreaInterface, text string) *ui.Label {
 	newLabel := c.owner.Manager.Add().ToLabel()
 	newLabel.Init(text)
-	newLabel.SetFontSize(editor.Theme().FontSize.FPix())
-	newLabel.SetColor(editor.Theme().ActiveTextColor.AsColor())
+	newLabel.SetFontSize(editor.Theme().SizeTextGlobal)
+	newLabel.SetColor(editor.Theme().ColorTextActive)
 	newLabel.SetWrap(false)
 	c.panel.AddChild(newLabel.Base())
 	return newLabel
@@ -91,16 +90,17 @@ func (c *Container) Label(editor editor_areas.EditorAreaInterface, text string) 
 func (c *Container) LabelLeft(editor editor_areas.EditorAreaInterface, text string) *ui.Panel {
 	bg := c.owner.Manager.Add().ToPanel()
 	bg.Init(nil, ui.ElementTypePanel)
-	fs := editor.Theme().FontSize.FPix()
+	fs := editor.Theme().SizeTextGlobal
 	ff := fs * 0.3
 	bg.Base().Layout().SetPadding(fs*0.5, ff, fs*0.5, ff)
-	bg.SetColor(editor.Theme().BackgroundColor.AsColor())
+	bg.SetColor(editor.Theme().ColorBackground)
 	bg.Base().Layout().SetZ(c.panel.Base().Layout().Z() + 0.1)
 	bg.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	content := c.owner.Manager.Add().ToLabel()
 	content.Init(text)
 	content.SetFontSize(fs)
-	content.SetColor(editor.Theme().PassiveTextColor.AsColor())
+	content.SetColor(editor.Theme().ColorTextPassive)
+	content.EnforceBGColor(editor.Theme().ColorPanel)
 	bg.SetBorderRadius(ff, ff, ff, ff)
 	bg.AddChild(content.Base())
 	c.panel.AddChild(bg.Base())
@@ -110,16 +110,17 @@ func (c *Container) LabelLeft(editor editor_areas.EditorAreaInterface, text stri
 func (c *Container) LabelRight(editor editor_areas.EditorAreaInterface, text string) *ui.Panel {
 	bg := c.owner.Manager.Add().ToPanel()
 	bg.Init(nil, ui.ElementTypePanel)
-	fs := editor.Theme().FontSize.FPix()
+	fs := editor.Theme().SizeTextGlobal
 	ff := fs * 0.3
 	bg.Base().Layout().SetPadding(fs*0.5, ff, fs*0.5, ff)
-	bg.SetColor(editor.Theme().BackgroundColor.AsColor())
+	bg.SetColor(editor.Theme().ColorBackground)
 	bg.Base().Layout().SetZ(c.panel.Base().Layout().Z() + 0.1)
 	bg.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	content := c.owner.Manager.Add().ToLabel()
 	content.Init(text)
-	content.SetFontSize(editor.Theme().FontSize.FPix())
-	content.SetColor(editor.Theme().PassiveTextColor.AsColor())
+	content.SetFontSize(editor.Theme().SizeTextGlobal)
+	content.SetColor(editor.Theme().ColorTextPassive)
+	content.EnforceBGColor(editor.Theme().ColorBackground)
 	bg.SetBorderRadius(ff, ff, ff, ff)
 	bg.Base().Layout().Stylizer = ui.RightStylizer{BasicStylizer: ui.BasicStylizer{Parent: weak.Make(c.panel.Base())}}
 	size := bg.Base().Layout().PixelSize()
@@ -132,16 +133,17 @@ func (c *Container) LabelRight(editor editor_areas.EditorAreaInterface, text str
 func (c *Container) LabelBottomLeft(editor editor_areas.EditorAreaInterface, text string) *ui.Panel {
 	bg := c.owner.Manager.Add().ToPanel()
 	bg.Init(nil, ui.ElementTypePanel)
-	fs := editor.Theme().FontSize.FPix()
+	fs := editor.Theme().SizeTextGlobal
 	ff := fs * 0.3
 	bg.Base().Layout().SetPadding(fs*0.5, ff, fs*0.5, ff)
-	bg.SetColor(editor.Theme().BackgroundColor.AsColor())
+	bg.SetColor(editor.Theme().ColorBackground)
 	bg.Base().Layout().SetZ(c.panel.Base().Layout().Z() + 0.1)
 	bg.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	content := c.owner.Manager.Add().ToLabel()
 	content.Init(text)
-	content.SetFontSize(editor.Theme().FontSize.FPix())
-	content.SetColor(editor.Theme().PassiveTextColor.AsColor())
+	content.SetFontSize(editor.Theme().SizeTextGlobal)
+	content.SetColor(editor.Theme().ColorTextPassive)
+	content.EnforceBGColor(editor.Theme().ColorBackground)
 	bg.SetBorderRadius(ff, ff, ff, ff)
 	bg.Base().Layout().Stylizer = BottomLeftStylizer{BasicStylizer: ui.BasicStylizer{Parent: weak.Make(c.panel.Base())}}
 	size := bg.Base().Layout().PixelSize()
@@ -154,16 +156,17 @@ func (c *Container) LabelBottomLeft(editor editor_areas.EditorAreaInterface, tex
 func (c *Container) LabelBottomRight(editor editor_areas.EditorAreaInterface, text string) *ui.Panel {
 	bg := c.owner.Manager.Add().ToPanel()
 	bg.Init(nil, ui.ElementTypePanel)
-	fs := editor.Theme().FontSize.FPix()
+	fs := editor.Theme().SizeTextGlobal
 	ff := fs * 0.3
 	bg.Base().Layout().SetPadding(fs*0.5, ff, fs*0.5, ff)
-	bg.SetColor(editor.Theme().BackgroundColor.AsColor())
+	bg.SetColor(editor.Theme().ColorBackground)
 	bg.Base().Layout().SetZ(c.panel.Base().Layout().Z() + 0.1)
 	bg.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	content := c.owner.Manager.Add().ToLabel()
 	content.Init(text)
-	content.SetFontSize(editor.Theme().FontSize.FPix())
-	content.SetColor(editor.Theme().PassiveTextColor.AsColor())
+	content.SetFontSize(editor.Theme().SizeTextGlobal)
+	content.SetColor(editor.Theme().ColorTextPassive)
+	content.EnforceBGColor(editor.Theme().ColorBackground)
 	bg.SetBorderRadius(ff, ff, ff, ff)
 	bg.Base().Layout().Stylizer = BottomRightStylizer{BasicStylizer: ui.BasicStylizer{Parent: weak.Make(c.panel.Base())}}
 	size := bg.Base().Layout().PixelSize()
@@ -210,8 +213,8 @@ type ContextBarElement struct {
 func ContextBar(a *editor_areas.Area, editor editor_areas.EditorAreaInterface) ContextBarElement {
 	cbContent := PanelAsRow(a.Manager, editor)
 	cbContent.Base().Layout().SetZ(a.Root.Base().Layout().Z() + 1)
-	cbContent.Base().Layout().Scale(a.Root.Base().Layout().PixelSize().X(), editor.Theme().ContextBarThickness.FPix())
-	cbContent.SetColor(editor.Theme().ContextBarColor.AsColor())
+	cbContent.Base().Layout().Scale(a.Root.Base().Layout().PixelSize().X(), editor.Theme().SizeContextBar)
+	cbContent.SetColor(editor.Theme().ColorContextBar)
 	a.Root.AddChild(cbContent.Base())
 	output := ContextBarElement{owner: a, panel: cbContent}
 	output.fields[LeftField] = output.newField(ui.FlexJustifyStart, ui.FlexAlignStart, ui.FlexJustifySelfStart)
@@ -224,17 +227,30 @@ func ContextBar(a *editor_areas.Area, editor editor_areas.EditorAreaInterface) C
 	return output
 }
 
+func BlankContainer(a *editor_areas.Area, editor editor_areas.EditorAreaInterface) *Container {
+	panel := PanelAsColumn(a.Manager, editor)
+	a.Root.AddChild(panel.Base())
+	panel.Base().Layout().SetZ(a.Root.Base().Layout().Z() + 0.1)
+	return &Container{owner: a, panel: panel}
+}
+
 func BackgroundImage(a *editor_areas.Area, editor editor_areas.EditorAreaInterface, texture string, widthRatio float32) *Container {
 	panel := ImagePanel(a.Root, a.Manager, editor, texture, widthRatio, false)
 	a.Root.AddChild(panel.Base())
 	inheritRoundness(panel, a.Root)
-	return &Container{owner: a, panel: panel, isColumn: false}
+	return &Container{owner: a, panel: panel}
 }
 
 func LogoImage(a *editor_areas.Area, editor editor_areas.EditorAreaInterface, texture string, widthRatio float32) *Container {
 	panel := ImagePanel(a.Root, a.Manager, editor, texture, widthRatio, true)
 	a.Root.AddChild(panel.Base())
-	return &Container{owner: a, panel: panel, isColumn: false}
+	return &Container{owner: a, panel: panel}
+}
+
+func HTMLContainer(a *editor_areas.Area, editor editor_areas.EditorAreaInterface, location string) *Container {
+	css := editor.Theme().GetGlobalCSS()
+	fmt.Printf(css)
+	return &Container{}
 }
 
 func inheritRoundness(panel *ui.Panel, parent *ui.Panel) {
@@ -260,7 +276,7 @@ func (cb *ContextBarElement) newField(justify ui.FlexJustify, align ui.FlexAlign
 	panel.Base().Layout().SetJustifySelf(justifySelf)
 	panel.SetFlexAlignItems(align)
 	panel.Base().Layout().Scale(0, 0)
-	return &Container{owner: cb.owner, panel: panel, isColumn: false}
+	return &Container{owner: cb.owner, panel: panel}
 }
 
 func (cb *ContextBarElement) Field(field DiscreteFieldRowAlignment) *Container {

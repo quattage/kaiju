@@ -41,10 +41,13 @@ func (as *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInter
 	bkg := layouting.BackgroundImage(area, ed, "kaiju-splash.png", 1)
 	bkg.TopShadow(ed, 0.8, 0.7)
 	layouting.LogoImage(area, ed, "kaiju-wordmark.png", 0.5)
-	version := bkg.LabelRight(ed, fmt.Sprintf("v%v", versions.Editor))
+	version := bkg.LabelRight(ed, fmt.Sprintf("editor v%v", versions.Editor))
 	version.SetOpacity(0.75)
 	attrib := bkg.LabelBottomRight(ed, "Content Attribution")
 	attrib.SetOpacity(0.75)
+
+	layouting.HTMLContainer(area, ed, "")
+
 }
 
 func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
