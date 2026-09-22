@@ -6,9 +6,10 @@
 
 package primary
 
+// The primary area is responsible for defining the main menu and status bars
+
 import (
 	"kaijuengine.com/editor/editor_areas"
-	"kaijuengine.com/editor/editor_areas/layouting"
 )
 
 func init() {
@@ -23,20 +24,15 @@ func init() {
 }
 
 type Handler struct {
-	menu_bar   layouting.ContextBarElement
-	status_bar layouting.ContextBarElement
+	menu_bar   editor_areas.ContextBarElement
+	status_bar editor_areas.ContextBarElement
 }
 
 func (h *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
+	area.StretchFlexColumn()
 	area.SetBackdropColor(ed.Theme().ColorBackground)
-	h.menu_bar = layouting.ContextBar(area, ed)
-	h.menu_bar.LeftField().Label(ed, "Top Left")
-	h.menu_bar.CenterField().Label(ed, "Top Center")
-	h.menu_bar.RightField().Label(ed, "Top Right")
-	h.status_bar = layouting.ContextBar(area, ed)
-	h.status_bar.LeftField().Label(ed, "Bottom Left")
-	h.status_bar.CenterField().Label(ed, "Bottom Center")
-	h.status_bar.RightField().Label(ed, "Bottom Right")
+	h.menu_bar = area.ContextBar(ed)
+	h.status_bar = area.ContextBar(ed)
 }
 
 func (h *Handler) Close(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {

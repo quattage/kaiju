@@ -13,6 +13,7 @@ import (
 
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/systems/events"
+	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
 	"kaijuengine.com/rendering"
@@ -882,6 +883,25 @@ func (p *Panel) SetOpacity(fac float32) {
 		p.SetUseBlending(true)
 	}
 	p.SetColor(p.Color().WithAlpha(fac))
+}
+
+// InheritBorderRadiusFrom compares the screen-space position of this Panel to
+// the provided panel (which will usually the parent) to determine which corners
+// are coincident. Corners that match will have their roundness copied
+// to this panel. This is useful for nesting panels cleanly.
+func (p *Panel) InheritBorderRadiusFrom(parent *Panel) {
+	// for now this is just a vertical thing but it needs
+	// proper intesection checks to be watertight
+	parent.Base().Clean()
+	barY := p.Base().Layout().PixelPosition().Y()
+	parentY := parent.Base().Layout().PixelPosition().Y()
+	if klib.FAbs(barY-parentY) < 0.01 {
+		radii := parent.Base().ShaderData().BorderRadius
+		p.SetBorderRadius(radii[3], radii[2], 0, 0)
+	} else if klib.FAbs(barY-parentY) > parent.Base().Layout().PixelSize().Y()-p.Base().Layout().PixelSize().Y()-0.01 {
+		radii := parent.Base().ShaderData().BorderRadius
+		p.SetBorderRadius(0, 0, radii[1], radii[0])
+	}
 }
 
 func (p *Panel) SetScrollX(value float32) {

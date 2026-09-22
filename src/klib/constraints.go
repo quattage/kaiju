@@ -6,7 +6,14 @@
 
 package klib
 
-import "cmp"
+import (
+	"cmp"
+	"math"
+)
+
+const (
+	fsignMask = 0x80000000
+)
 
 type SignedInteger interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64
@@ -52,4 +59,8 @@ func ClampAbs[T Signed](value, minimum T) T {
 		return -minimum
 	}
 	return value
+}
+
+func FAbs(x float32) float32 {
+	return math.Float32frombits(math.Float32bits(x) &^ fsignMask)
 }

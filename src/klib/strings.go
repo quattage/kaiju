@@ -8,7 +8,9 @@ package klib
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
@@ -49,10 +51,45 @@ func StripFloatStringZeros(fString string) string {
 	return fString
 }
 
+func NameOfFunction(fn any) string {
+	pc := reflect.ValueOf(fn).Pointer()
+	f := runtime.FuncForPC(pc)
+	if f == nil {
+		return ""
+	}
+	name := f.Name()
+	if i := strings.LastIndex(name, "."); i >= 0 {
+		name = name[i+1:]
+	}
+	return name
+}
+
 func ToSnakeCase(str string) string {
 	snake := snakeCaseMatchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = snakeCaseMatchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
+}
+
+// ToKebabCase converts a PascalCase or camelCase string to kebab-case
+func ToKebabCase(input string) string {
+	if len(input) < 2 {
+		return input
+	}
+	var result strings.Builder
+	for x, r := range input {
+		if unicode.IsUpper(r) {
+			if x > 0 {
+				prev := rune(input[x-1])
+				if unicode.IsLower(prev) || unicode.IsDigit(prev) {
+					result.WriteByte('-')
+				}
+			}
+			result.WriteRune(unicode.ToLower(r))
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
 }
 
 func CapitalizeFirst(s string) string {

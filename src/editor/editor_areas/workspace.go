@@ -42,7 +42,7 @@ func (wm *WorkspaceManager) Initialize(editor EditorAreaInterface) {
 // Refresh rebuilds only the necessary elements to bring the workspace
 // up-to-date with the currently configured settings and theme
 func (wm *WorkspaceManager) Refresh(editor EditorAreaInterface) {
-	editor.Host().Window.SetMinimumSize(640, 380)
+	wm.Editor().SetMinimumWindowSize(-1, -1)
 	editor.Host().Window.SetTitleBarColor(editor.Theme().ColorContextBar.AsColor8())
 	editor.Theme().MarkGlobalCSSDirty()
 	wm.finalizeATRegistry()
@@ -68,14 +68,7 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 	if areaToOpen.Flags&AreaCapabilityFlagOverlayable == 0 {
 		return nil, fmt.Errorf("%s isn't overlayable!", areaToOpen)
 	}
-	newArea := &Area{
-		Type:           *areaToOpen,
-		Parent:         nil,
-		ChildA:         nil,
-		ChildB:         nil,
-		SplitDirection: SplitHorizontal,
-		Ratio:          -1,
-	}
+	newArea := newBlankArea(areaToOpen)
 	wx, wy := areaToOpen.Handler.GetOverlayDimensions()
 	wx = klib.MM2Pix(wx)
 	wy = klib.MM2Pix(wy)
@@ -94,8 +87,8 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 		posy = max(0, min(posy, maxH-wy))
 	}
 	newArea.openWithSize(wm, wx, wy, wm.editor.Theme().SizeRadiusGlobal)
-	newArea.Root.Base().Layout().SetOffset(posx, posy)
-	newArea.Root.Base().Layout().SetZ(9)
+	newArea.Panel.Base().Layout().SetOffset(posx, posy)
+	newArea.Panel.Base().Layout().SetZ(9)
 	newArea.OverlayPX = (posx + wx*0.5) / maxW
 	newArea.OverlayPY = (posy + wy*0.5) / maxH
 	wm.Overlays = append(wm.Overlays, newArea)
@@ -115,16 +108,7 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 	}
 	if parentArea == nil {
 		if wm.MainArea == nil {
-			wm.MainArea = &Area{
-				Type:           *areaToOpen,
-				Parent:         nil,
-				ChildA:         nil,
-				ChildB:         nil,
-				SplitDirection: SplitHorizontal,
-				Ratio:          -1,
-				OverlayPX:      -1,
-				OverlayPY:      -1,
-			}
+			wm.MainArea = newBlankArea(areaToOpen)
 			slog.Info(fmt.Sprintf("Populated MainArea with %s", areaToOpen))
 			wm.MainArea.openWithSize(wm, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()), 0)
 			return wm.MainArea, nil
@@ -149,12 +133,12 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 		return nil, nil
 	}
 	areaCopy := parentArea
-	areaCopy.Parent = parentArea
+	areaCopy.owner = parentArea
 	areaCopy.SplitDirection = SplitHorizontal
 	areaCopy.Ratio = -1
 	newArea := &Area{
 		Type:           *areaToOpen,
-		Parent:         parentArea,
+		owner:          parentArea,
 		OverlayPX:      areaCopy.OverlayPX,
 		OverlayPY:      areaCopy.OverlayPY,
 		SplitDirection: SplitHorizontal,
@@ -184,7 +168,8 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 		}
 	}
 	parentArea.Manager = nil
-	parentArea.Root = nil
+	parentArea.Panel = nil
+	parentArea.doc = nil
 	parentArea.Type = AreaTypeComposite
 	parentArea.SplitDirection = direction
 	newArea.open(wm)
@@ -198,13 +183,13 @@ func (wm *WorkspaceManager) Close(areaToClose *Area) {
 	if areaToClose == nil {
 		slog.Error("Skipped attempt to close a nil area.")
 	}
-	if areaToClose.Parent != nil {
+	if areaToClose.owner != nil {
 		switch areaToClose {
-		case areaToClose.Parent.ChildA:
-			areaToClose.Parent.ChildA = nil
+		case areaToClose.owner.ChildA:
+			areaToClose.owner.ChildA = nil
 			return
-		case areaToClose.Parent.ChildB:
-			areaToClose.Parent.ChildB = nil
+		case areaToClose.owner.ChildB:
+			areaToClose.owner.ChildB = nil
 			return
 		}
 	}

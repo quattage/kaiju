@@ -1,0 +1,110 @@
+/* 
+    Variables are named in the editor_theme.go file and serialized via json. Their 
+    values are forwarded to layout engine at runtime and accessible here in CSS
+*/
+
+body {
+    display: block;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    color: var(--ed-color-text-passive);
+    background-color: transparent;
+    font-size: var(--ed-size-text-global);
+    border: 0px transparent;
+}
+
+div {
+    display: block;
+    overflow: visible;
+}
+
+span {
+    display: inline;
+    overflow: visible;
+}
+
+p {
+    display: block;
+    width: 100%;
+    margin: 1em 0;
+}
+
+h1 {
+    display: block;
+    width: 100%;
+    margin: 0.67em 0;
+    font-size: 2em;
+    font-weight: bold;
+}
+
+td,
+th {
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+.halfWidth {
+    width: 50%
+}
+
+.table {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    width: 100%;
+}
+
+.headerRow {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-content: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    width: 100%;
+    padding: 16px 16px
+}
+
+.tableRow {
+    text-align: center;
+    vertical-align: middle;
+    align-self: center;
+}
+
+.bigText {
+    font-size: 1.4em;
+    font-weight: bold;
+}
+
+.silent {
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.5);
+    padding: 3px 4px;
+}
+
+button,
+.button {
+    display: inline;
+    padding: 3px 5px 3px 5px;
+    font-size: 1em;
+    vertical-align: middle;
+    overflow: hidden;
+    color: white;
+    background-color: var(--ed-color-accent-passive);
+    border: 0px transparent;
+}
+
+button:hover,
+.button:hover {
+    background-color: var(--ed-color-accent-active);
+}
+
+button:active,
+.button:active {
+    padding: 3px 5px 3px 5px;
+    background-color: var(--ed-color-accent-passive);
+}

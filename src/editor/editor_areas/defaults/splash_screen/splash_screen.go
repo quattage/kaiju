@@ -10,8 +10,8 @@ import (
 	"fmt"
 
 	"kaijuengine.com/editor/editor_areas"
-	"kaijuengine.com/editor/editor_areas/layouting"
 	"kaijuengine.com/editor/editor_embedded_content/versions"
+	"kaijuengine.com/engine/ui/markup/document"
 )
 
 func init() {
@@ -38,19 +38,23 @@ type Handler struct {
 
 func (as *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
 	as.RecentProjects = ed.Settings().RecentProjects
-	bkg := layouting.BackgroundImage(area, ed, "kaiju-splash.png", 1)
+	area.SetMinimunWindowSize(ed)
+	bkg := area.BackgroundImage(ed, "kaiju-splash.png", 1)
 	bkg.TopShadow(ed, 0.8, 0.7)
-	layouting.LogoImage(area, ed, "kaiju-wordmark.png", 0.5)
-	version := bkg.LabelRight(ed, fmt.Sprintf("editor v%v", versions.Editor))
+	area.LogoImage(ed, "kaiju-wordmark.png", 0.4)
+	version := bkg.AnnotateTopRight(ed, fmt.Sprintf("editor v%v", versions.Editor))
 	version.SetOpacity(0.75)
-	attrib := bkg.LabelBottomRight(ed, "Content Attribution")
+	attrib := bkg.AnnotateBottomRight(ed, "Content Attribution")
 	attrib.SetOpacity(0.75)
+	area.HTMLContainer(ed, "splash.html", testFunc)
+}
 
-	layouting.HTMLContainer(area, ed, "")
+func testFunc(doc *document.Element) {
 
 }
 
 func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
+	editor.SetMinimumWindowSize(-1, -1)
 }
 
 func (as *Handler) FocusInterface(editor editor_areas.EditorAreaInterface) {

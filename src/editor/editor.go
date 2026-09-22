@@ -29,6 +29,7 @@ import (
 	"kaijuengine.com/matrix"
 	platformPower "kaijuengine.com/platform/power"
 	"kaijuengine.com/platform/profiler/tracing"
+
 	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/textures"
 
@@ -123,6 +124,7 @@ func (ed *Editor) UpdateSettings() {
 		slog.Error("failed to save the editor settings", "error", err)
 		return
 	}
+	slog.Info("Updated editor settings")
 	ed.updateWebAPI()
 }
 
@@ -131,7 +133,14 @@ func (ed *Editor) UpdateTheme() {
 		slog.Error("failed to save workspace theme", "error", err)
 		return
 	}
+	slog.Info("Updated editor theme")
 	ed.UIWorkspace().Refresh(ed)
+}
+
+func (ed *Editor) SetMinimumWindowSize(width int, height int) {
+	width = max(640, width)
+	height = max(380, height)
+	ed.UIWorkspace().Editor().Host().Window.SetMinimumSize(width, height)
 }
 
 func (ed *Editor) queryAndCachePowerStatus() platformPower.Status {
