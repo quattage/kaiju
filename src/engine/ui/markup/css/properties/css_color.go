@@ -11,6 +11,7 @@ import (
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/functions"
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
@@ -36,6 +37,15 @@ func (p Color) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		// TODO:  If a text color is set on a parent somewhere, that parent may not have any text in it
 		// so we'll need to store the color on the panel or something?
 		return nil
+	}
+
+	switch values[0].Str {
+	case "rgb":
+		hex, _ = functions.Rgb{}.Process(panel, elm, values[0])
+	case "rgba":
+		hex, _ = functions.Rgba{}.Process(panel, elm, values[0])
+	case "color-mix":
+		hex, _ = functions.ColorMix{}.Process(panel, elm, values[0])
 	}
 
 	if newHex, ok := helpers.ColorMap[hex]; ok {

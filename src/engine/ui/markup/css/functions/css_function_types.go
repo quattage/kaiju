@@ -90,3 +90,7 @@ func (f Rgba) Key() string { return "rgba" }
 type Var struct{}
 
 func (f Var) Key() string { return "var" }
+
+type ColorMix struct{}
+
+func (f ColorMix) Key() string { return "color-mix" }

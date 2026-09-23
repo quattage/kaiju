@@ -35,4 +35,5 @@ var FunctionMap = map[string]Function{
 	"rgb":                       Rgb{},
 	"rgba":                      Rgba{},
 	"var":                       Var{},
+	"color-mix":                 ColorMix{},
 }

@@ -537,3 +537,8 @@ button.primary:hover,
 .centerText {
 	text-align: center;
 }
+
+.test {
+	border-color: cyan;
+	background-color: red;
+}

@@ -58,6 +58,8 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 		hex, _ = functions.Rgb{}.Process(panel, elm, values[0])
 	case "rgba":
 		hex, _ = functions.Rgba{}.Process(panel, elm, values[0])
+	case "color-mix":
+		hex, _ = functions.ColorMix{}.Process(panel, elm, values[0])
 	}
 
 	if newHex, ok := helpers.ColorMap[hex]; ok {
