@@ -6,7 +6,10 @@
 
 package rules
 
-import "slices"
+import (
+	"slices"
+	"strings"
+)
 
 type RuleInvoke uint16
 
@@ -46,6 +49,19 @@ func (p *PropertyValue) Clone() PropertyValue {
 
 func (p PropertyValue) IsFunction() bool {
 	return len(p.Args) > 0
+}
+
+func (r *PropertyValue) String() string {
+	var output strings.Builder
+	output.Grow(len(r.Args) * 5)
+	output.WriteString(r.Str)
+	output.WriteString(": [")
+	for x := 0; x < len(r.Args); x++ {
+		arg := r.Args[x]
+		output.WriteString(arg)
+		output.WriteString(", ")
+	}
+	return output.String()[:len(output.String())-2] + "]"
 }
 
 type Rule struct {

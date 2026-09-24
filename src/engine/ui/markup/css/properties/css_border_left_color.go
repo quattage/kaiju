@@ -11,6 +11,7 @@ import (
 
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/ui"
+	"kaijuengine.com/engine/ui/markup/css/functions"
 	"kaijuengine.com/engine/ui/markup/css/helpers"
 	"kaijuengine.com/engine/ui/markup/css/rules"
 	"kaijuengine.com/engine/ui/markup/document"
@@ -43,6 +44,8 @@ func (p BorderLeftColor) Process(panel *ui.Panel, elm *document.Element, values 
 			panel.SetBorderColor(colors[0], colors[1], colors[2], colors[3])
 		}
 		return nil
+	case "color-mix":
+		value, _ = functions.ColorMix{}.Process(panel, elm, values[0])
 	}
 
 	if newHex, ok := helpers.ColorMap[value]; ok {

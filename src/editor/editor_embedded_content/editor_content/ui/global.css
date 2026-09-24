@@ -63,6 +63,12 @@ tr:nth-child(even) {
     font-family: "OverusedGrotesk";
     font-weight: bold;
     padding: 0px 6px;
+    bottom: 1.45em;
+}
+
+.verticalCenter {
+    top: 50%;
+    bottom: 50%;
 }
 
 .headerTable {
@@ -71,19 +77,32 @@ tr:nth-child(even) {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    color: var(--ed-color-text-passive);
-    background-color: color-mix(in srgb black white 0.5);
-    border-bottom: 1px solid var(--ed-color-accent-passive);
-    border-top: 1px solid var(--ed-color-accent-passive);
-    font-weight: bold;
-    padding: 6px 12px;
+    color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    background-color: color-mix(in srgb var(--ed-color-panel) gray 90%);
+    border-bottom: 3px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    border-top: 3px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    font-size: 1.2em;
+    padding: 6px 16px 4px 16px;
     min-width: 0;
 }
 
-.tableCell {
-    color: var(--ed-color-text-passive);
-    padding: 8px 12px;
-    min-width: 0;
+.verticalSection {
+    display: flex;
+    flex-direction: row;
+    height: 2.0em;
+}
+
+.verticalDivider {
+    height: 75%;
+    width: 2px;
+    top: 25%;
+    left: -0.7em;
+    border-left: 3px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
+}
+
+.headerTableLabel {
+    top: 10%;
+    font-size: 1.2em;
 }
 
 .silent {

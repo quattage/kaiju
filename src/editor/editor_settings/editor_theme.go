@@ -58,7 +58,7 @@ func (wt *WorkspaceTheme) setDefaults() {
 	wt.ColorBackground = matrix.NewColor8(5, 6, 7, 255).AsColor()
 	wt.ColorContextBar = matrix.NewColor8(9, 12, 15, 255).AsColor()
 	wt.ColorPanel = matrix.NewColor8(14, 16, 18, 255).AsColor()
-	wt.ColorTextPassive = matrix.NewColor8(154, 168, 159, 255).AsColor()
+	wt.ColorTextPassive = matrix.NewColor8(125, 125, 125, 255).AsColor()
 	wt.ColorTextActive = matrix.NewColor8(224, 226, 226, 255).AsColor()
 	wt.ColorAccentPassive = matrix.NewColor8(193, 50, 52, 255).AsColor()
 	wt.ColorAccentActive = matrix.NewColor8(226, 40, 65, 255).AsColor()

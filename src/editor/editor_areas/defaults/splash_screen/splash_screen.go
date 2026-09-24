@@ -47,6 +47,8 @@ func (as *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInter
 	attrib := bkg.AnnotateBottomRight(ed, "Content Attribution")
 	attrib.SetOpacity(0.75)
 	area.HTMLContainer(ed, "splash.html", testFunc)
+
+	fmt.Print("?? " + ed.Theme().GetGlobalCSS(ed.Host()))
 }
 
 func testFunc(doc *document.Element) {
@@ -71,7 +73,7 @@ func (h *Handler) GetOffsets(ed editor_areas.EditorAreaInterface) (float32, floa
 }
 
 func (h *Handler) GetOverlayDimensions() (float32, float32) {
-	return 700, 800
+	return 800, 900
 }
 
 func (as *Handler) IsFocusedOnInput() bool {

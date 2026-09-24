@@ -223,6 +223,13 @@ func (w *Window) Poll() {
 		w.resizedFromNativeAPI = false
 		w.OnResize.Execute()
 	}
+	if w.width < w.minWidth && w.height >= w.minHeight {
+		w.SetSize(w.minWidth, w.height)
+	} else if w.width >= w.minWidth && w.height < w.minHeight {
+		w.SetSize(w.width, w.minHeight)
+	} else if w.width < w.minWidth && w.height < w.minHeight {
+		w.SetSize(w.minWidth, w.minHeight)
+	}
 	w.isCrashed = w.isCrashed || w.fatalFromNativeAPI
 	w.Cursor.Poll()
 }
@@ -437,9 +444,9 @@ func (w *Window) SetSize(width, height int) {
 }
 
 func (w *Window) SetMinimumSize(width, height int) {
-	w.setMinimumSize(width, height)
 	w.minWidth = width
 	w.minHeight = height
+	w.setMinimumSize(width, height)
 }
 
 func (w *Window) RemoveBorder()      { w.removeBorder() }

@@ -53,12 +53,7 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 		return nil
 	}
 
-	switch values[0].Str {
-	case "rgb":
-		hex, _ = functions.Rgb{}.Process(panel, elm, values[0])
-	case "rgba":
-		hex, _ = functions.Rgba{}.Process(panel, elm, values[0])
-	case "color-mix":
+	if hex == "color-mix" {
 		hex, _ = functions.ColorMix{}.Process(panel, elm, values[0])
 	}
 

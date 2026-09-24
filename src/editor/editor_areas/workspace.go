@@ -70,12 +70,14 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 	}
 	newArea := newBlankArea(areaToOpen)
 	wx, wy := areaToOpen.Handler.GetOverlayDimensions()
-	wx = klib.MM2Pix(wx)
-	wy = klib.MM2Pix(wy)
 	maxW := float32(wm.editor.Host().Window.Width())
 	maxH := float32(wm.editor.Host().Window.Height())
-	wx = min(max(wx, 10), maxW-24)
-	wy = min(max(wy, 10), maxH-24)
+	if wx < 800 && wy < 800 {
+		wx = klib.MM2Pix(wx)
+		wy = klib.MM2Pix(wy)
+		wx = min(max(wx, 10), maxW-24)
+		wy = min(max(wy, 10), maxH-24)
+	}
 	if posx < 0 {
 		posx = (maxW - wx) / 2
 	} else {
