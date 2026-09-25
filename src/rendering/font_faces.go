@@ -25,15 +25,19 @@ const (
 )
 
 func (f FontFace) IsBold() bool {
-	return strings.Contains(string(f), "Bold")
+	return strings.Contains(string(f), "-Bold")
 }
 
 func (f FontFace) IsExtraBold() bool {
-	return strings.Contains(string(f), "ExtraBold")
+	return strings.Contains(string(f), "-ExtraBold")
 }
 
 func (f FontFace) IsItalic() bool {
-	return strings.Contains(string(f), "Italic")
+	return strings.Contains(string(f), "-Italic")
+}
+
+func (f FontFace) IsRegular() bool {
+	return strings.Contains(string(f), "-Regular")
 }
 
 func (f FontFace) AsBold() FontFace {

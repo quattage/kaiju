@@ -160,10 +160,42 @@ func (cache *FontCache) requireFace(face FontFace) {
 		cache.FaceMutex.RUnlock()
 		cache.FaceMutex.Lock()
 		defer cache.FaceMutex.Unlock()
-		cache.initFont(face, cache.assetDb)
+		if !cache.initFont(face, cache.assetDb) {
+			cache.fallbackFace(face)
+		}
 	} else {
 		cache.FaceMutex.RUnlock()
 	}
+}
+
+// fallbackFace is run by requireFace when the cache doesn't contain a mapping
+// for the requested face. It attempts to find a regular variant of the
+// requested font if applicable, then finally falls back on OpenSans. If
+// OpenSans cannot be loaded for whatever reason, this call will panic.
+func (cache *FontCache) fallbackFace(face FontFace) {
+	if face.IsRegular() {
+		fallback, exists := cache.fontFaces[FontRegular.string()]
+		if !exists {
+			if !cache.initFont(FontRegular, cache.assetDb) {
+				panic(fmt.Sprintf("Couldn't load font '%s' and failed to fall back on '%s'", face, FontRegular))
+			}
+			fallback = cache.fontFaces[FontRegular.string()]
+		}
+		cache.fontFaces[face.string()] = fallback
+		slog.Warn(fmt.Sprintf("Font %s couldn't be found. Loaded fallback %s in its place.", face, FontRegular))
+		return
+	}
+	reg := face.AsRegular()
+	fallback, exists := cache.fontFaces[reg.string()]
+	if !exists {
+		if !cache.initFont(reg, cache.assetDb) {
+			cache.fallbackFace(reg)
+			return
+		}
+		fallback = cache.fontFaces[reg.string()]
+	}
+	cache.fontFaces[face.string()] = fallback
+	slog.Warn(fmt.Sprintf("Font %s couldn't be found. Loaded fallback %s in its place.", face, reg))
 }
 
 func (cache *FontCache) PreloadFace(face FontFace) {
@@ -308,11 +340,13 @@ func (cache *FontCache) initFont(face FontFace, adb assets.Database) bool {
 				slog.Error("failed to reload font texture without mipmaps", "texture", textureKey, "error", err)
 			}
 		}
+	} else {
+		return false
 	}
 	bin.cachedLetters = make(map[rune]*cachedLetterMesh)
 	bin.cachedOrthoLetters = make(map[rune]*cachedLetterMesh)
 	out, _ := adb.Read(face.string() + ".bin")
-	if bin.texture == nil || out == nil || len(out) == 0 {
+	if out == nil || len(out) == 0 {
 		return false
 	}
 	read := bytes.NewReader(out)

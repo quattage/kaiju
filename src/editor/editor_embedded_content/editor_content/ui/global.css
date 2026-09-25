@@ -58,12 +58,19 @@ tr:nth-child(even) {
     width: 100%;
 }
 
-.bigLabelText {
+.important {
     font-size: 2.5em;
-    font-family: "OverusedGrotesk";
+    font-family: "OverusedGrotesk-Regular";
     font-weight: bold;
     padding: 0px 6px;
     bottom: 1.45em;
+}
+
+.silent {
+    font-weight: bold;
+    font-size: 1.3em;
+    color: white;
+    padding: 3px
 }
 
 .verticalCenter {
@@ -74,13 +81,12 @@ tr:nth-child(even) {
 .headerTable {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
     align-items: center;
     width: 100%;
     color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
     background-color: color-mix(in srgb var(--ed-color-panel) gray 90%);
-    border-bottom: 3px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
-    border-top: 3px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    border-bottom: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    border-top: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
     font-size: 1.2em;
     padding: 6px 16px 4px 16px;
     min-width: 0;
@@ -97,7 +103,7 @@ tr:nth-child(even) {
     width: 2px;
     top: 25%;
     left: -0.7em;
-    border-left: 3px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    border-left: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
 }
 
 .headerTableLabel {
@@ -105,19 +111,23 @@ tr:nth-child(even) {
     font-size: 1.2em;
 }
 
-.silent {
-    font-weight: bold;
-    font-size: 1.3em;
-    color: white;
-    padding: 3px
-}
-
 button .silent {
     padding: 0px 4px 0px 7px;
 }
 
-button,
-.button {
+button {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 1px 4px;
+    font-size: 1em;
+    overflow: hidden;
+    color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    border: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    background-color: var(--ed-color-background);
+}
+
+button .important {
     display: inline-flex;
     flex-direction: row;
     align-items: center;
@@ -129,13 +139,11 @@ button,
     border: none;
 }
 
-button:hover,
-.button:hover {
+button:hover {
     background-color: var(--ed-color-accent-active);
 }
 
-button:active,
-.button:active {
+button:active {
     padding: 1px 4px;
     background-color: var(--ed-color-accent-passive);
 }

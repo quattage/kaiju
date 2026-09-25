@@ -538,6 +538,13 @@ button.primary:hover,
 	text-align: center;
 }
 
+.icon {
+	font-weight: normal;
+	font-style: normal;
+	font-family: "MaterialIcons-Regular";
+	font-size: 1.2em;
+}
+
 .test {
 	border-color: cyan;
 	background-color: red;
