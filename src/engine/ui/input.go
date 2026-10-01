@@ -71,6 +71,10 @@ type inputData struct {
 	lastDownTime                      time.Time
 }
 
+func (i *inputData) Placeholder() *Label {
+	return i.placeholder
+}
+
 func (i *inputData) innerPanelData() *panelData { return &i.panelData }
 
 type Input Panel
@@ -145,7 +149,7 @@ func (input *Input) Init(placeholderText string) {
 	data.highlight = man.Add().ToPanel()
 	data.highlight.Init(tex, ElementTypePanel)
 	data.highlight.DontFitContent()
-	data.highlight.SetColor(matrix.Color{1, 1, 0, 0.5})
+	data.highlight.SetColor(matrix.Color{1, 1, 1, 0.3})
 	data.highlight.layout.SetZ(1)
 	data.highlight.layout.SetPositioning(PositioningAbsolute)
 	data.highlight.AllowClickThrough()
@@ -1050,6 +1054,10 @@ func (input *Input) keyPressed(keyId int, keyState hid.KeyState) {
 					} else {
 						host.RunAfterFrames(1, input.focusNext)
 					}
+				case hid.KeyboardKeyHome:
+					input.arrowMoveCursor(kb, math.MinInt32)
+				case hid.KeyboardKeyEnd:
+					input.arrowMoveCursor(kb, math.MaxInt32)
 				}
 			}
 			(*UI)(input).requestEvent(EventTypeKeyDown)

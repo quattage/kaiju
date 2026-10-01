@@ -8,17 +8,15 @@ package primary
 
 // The primary area is responsible for defining the main menu and status bars
 
-import (
-	"kaijuengine.com/editor/editor_areas"
-)
+import "kaijuengine.com/editor/editor_areas"
 
 func init() {
 	editor_areas.Register(func() editor_areas.AreaType {
 		return editor_areas.AreaType{
-			ID:      "com.kaiju.area_primary",
-			Name:    "Primary Area",
-			Handler: &Handler{},
-			Flags:   0,
+			ID:             "com.kaiju.area_primary",
+			Name:           "Primary Area",
+			Flags:          0,
+			HandlerFactory: func() editor_areas.AreaHandler { return &Handler{} },
 		}
 	})
 }

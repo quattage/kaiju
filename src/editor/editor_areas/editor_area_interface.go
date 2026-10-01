@@ -48,8 +48,8 @@ type EditorAreaInterface interface {
 	ProjectFileSystem() *project_file_system.FileSystem
 	StageView() *editor_stage_view.StageView
 
-	// Focus management — Areas blur the rest of the editor while a
-	// modal/overlay is in front of them and re-focus on close.
+	// Focus management — Overlays are expected to blur the areas
+	// underneath them, then re-focus on close.
 	BlurInterface()
 	FocusInterface()
 	IsInputFocused() bool
@@ -64,14 +64,13 @@ type EditorAreaInterface interface {
 	ShowReferences(id string)
 
 	// SwitchToWorkspace reconfigures the Area stack to match
-	// what's descrubed by the WorkspaceConfiguration mapped to the
+	// what's described by the WorkspaceConfiguration mapped to the
 	// provided string ID, if one exists.
 	SwitchToWorkspace(id string)
 
 	// SetMinimumWindoWSize ensures that the window cannot be smaller
-	// than the provided width and height. This is useful for layouts that
-	// don't need or care to support smooth scaling for unrealistically small
-	// values. This method is called by the editor on startup to make sure that
-	// the editor window can't be extremely small
+	// than the provided width and height. This method is called by the editor
+	// on startup to ensure that the editor window can't be resized in a way
+	// that could cause issues with the Area system.
 	SetMinimumWindowSize(width, height int)
 }

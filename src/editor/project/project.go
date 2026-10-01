@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -53,6 +54,7 @@ type Project struct {
 	fileSystem          project_file_system.FileSystem
 	cacheDatabase       content_database.Cache
 	Settings            Settings
+	SessionRestore      WorkspaceSession
 	entityData          []codegen.GeneratedType
 	entityDataMap       map[string]*codegen.GeneratedType
 	contentSerializers  map[string]func(content_archive.FileReader, []byte) ([]byte, error)
@@ -128,7 +130,16 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 // error saving the config.
 func (p *Project) Close() error {
 	defer tracing.NewRegion("Project.Close").End()
-	return p.Settings.Save(&p.fileSystem)
+	errA := p.Settings.Save(&p.fileSystem)
+	errB := p.SessionRestore.Save(&p.fileSystem)
+	if errA != nil && errB != nil {
+		return errors.Join(errA, errB)
+	} else if errA != nil {
+		return errA
+	} else if errB != nil {
+		return errB
+	}
+	return nil
 }
 
 // Open constructs an existing project given a target folder. This function can

@@ -36,6 +36,7 @@ import (
 	// we import the default areas so that their initializers are hit
 	_ "kaijuengine.com/editor/editor_areas/defaults/fallback"
 	_ "kaijuengine.com/editor/editor_areas/defaults/primary"
+	"kaijuengine.com/editor/editor_areas/defaults/splash_screen"
 	_ "kaijuengine.com/editor/editor_areas/defaults/splash_screen"
 )
 
@@ -110,7 +111,10 @@ func (ed *Editor) IsInputFocused() bool {
 
 func (ed *Editor) earlyLoadUI() {
 	defer tracing.NewRegion("Editor.earlyLoadUI").End()
-	ed.wsm.Initialize(ed)
+	area := ed.wsm.Initialize(ed)
+	splash := area.GetConformedHandler[*splash_screen.Handler]()
+	splash.HandleCreateProject = ed.createProject
+	splash.HandleOpenProject = ed.openProject
 }
 
 func (ed *Editor) UpdateSettings() {

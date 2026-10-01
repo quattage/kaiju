@@ -55,6 +55,8 @@ func findHex(input string) (matrix.Color, error) {
 	hex, ok := helpers.ColorMap[input]
 	if ok {
 		return matrix.ColorFromHexString(hex)
+	} else if hex == "transparent" {
+		return matrix.ColorZero(), nil
 	}
 	return matrix.ColorFromHexString(input)
 }

@@ -8,25 +8,20 @@ package project
 
 import (
 	"encoding/json"
-	"log/slog"
+	"fmt"
 
-	"kaijuengine.com/editor/editor_controls"
 	"kaijuengine.com/editor/project/project_file_system"
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
 type Settings struct {
 	Name                 string
+	Organization         string
+	Repository           string
 	EntryPointStage      string
 	ArchiveEncryptionKey string
-	EditorSettings       EditorSettings `visible:"false"`
 	Android              AndroidSettings
 	EditorVersion        float64 `visible:"false"`
-}
-
-type EditorSettings struct {
-	CameraMode      int    `visible:"false"`
-	LatestOpenStage string `visible:"false"`
 }
 
 type AndroidSettings struct {
@@ -53,9 +48,13 @@ func (c *Settings) load(fs *project_file_system.FileSystem) error {
 	if err != nil {
 		return err
 	}
-	if c.EditorSettings.CameraMode == 0 {
-		slog.Info("defaulting to 3D camera mode")
-		c.EditorSettings.CameraMode = editor_controls.EditorCameraMode3d
-	}
 	return c.Save(fs)
+}
+
+func (c *Settings) Validate() error {
+	var err error = nil
+	if len(c.Name) < 3 {
+		err = fmt.Errorf("Name must be at least 3 characters!")
+	}
+	return err
 }

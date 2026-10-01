@@ -313,18 +313,18 @@ func (v *StageView) setupCamera(ed EditorStageViewWorkspaceInterface) {
 			// Identity matrix is fine
 			v.gridShader.Color.SetA(1)
 			v.gridTransform.SetRotation(matrix.Vec3Zero())
-			pjs.EditorSettings.CameraMode = editor_controls.EditorCameraMode3d
 		case editor_controls.EditorCameraMode2d:
 			v.gridShader.Color.SetA(0)
 			v.gridTransform.SetRotation(matrix.NewVec3(90, 0, 0))
-			pjs.EditorSettings.CameraMode = editor_controls.EditorCameraMode2d
 		}
 		v.updateGridPosition()
 		if err := pjs.Save(ed.ProjectFileSystem()); err != nil {
 			slog.Error("there was an error saving the project settings during setupCamera", "error", err)
 		}
 	})
-	v.camera.SetMode(pjs.EditorSettings.CameraMode, v.host)
+	// When this gets moved to the Area system this will need to be
+	// addressed by the workspace session restore system
+	// v.camera.SetMode(pjs.EditorSettings.CameraMode, v.host)
 	v.camera.Settings = &ed.Settings().EditorCamera
 }
 

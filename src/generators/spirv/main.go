@@ -9,6 +9,8 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,6 +36,7 @@ func main() {
 	}
 	srcRoot := openRoot(pb.Src)
 	spvRoot := openRoot(pb.Spv)
+	slog.Info("Starting compilation...")
 	for i := range pb.Shaders {
 		sd := parseShader(pb.Shaders[i])
 		flagSuffix := ""
@@ -83,7 +86,9 @@ func main() {
 		if err = os.WriteFile(pb.Shaders[i], data, os.ModePerm); err != nil {
 			panic(err)
 		}
+		slog.Info("Compiled " + pb.Shaders[i])
 	}
+	slog.Info(fmt.Sprintf("Produced %v SPIR-V binaries", len(pb.Shaders)))
 }
 
 func pathJoin(a, b string) string {

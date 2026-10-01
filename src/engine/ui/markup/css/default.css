@@ -493,36 +493,6 @@ var {
 	font-style: italic;
 }
 
-button,
-.button {
-	padding: 0 5px 2px 5px;
-	font-size: 16px;
-	text-align: center;
-	vertical-align: middle;
-	overflow: hidden;
-	border: 2px solid #1C1C1C;
-	border-radius: 5px;
-	background-color: rgb(59, 59, 59);
-	/* background-image: url("input_atlas.png");
-	background-position: 64px 64px;
-	background-size: 64px 64px; */
-}
-
-button:hover,
-.button:hover {
-	background-color: #575757;
-	/* background-image: url("input_atlas.png");
-	background-position: 0 64px; */
-}
-
-button:active,
-.button:active {
-	padding: 2px 5px 0 5px;
-	background-color: rgb(59, 59, 59);
-	/* background-image: url("input_atlas.png");
-	background-position: 64px 0; */
-}
-
 button.primary,
 .button.primary {
 	background-color: #682A2D;
@@ -542,10 +512,15 @@ button.primary:hover,
 	font-weight: normal;
 	font-style: normal;
 	font-family: "MaterialIcons-Regular";
-	font-size: 1.2em;
+	font-size: 1.3em;
 }
 
 .test {
 	border-color: cyan;
 	background-color: red;
+}
+
+.mono {
+	font-size: 1em;
+	font-family: monospace;
 }

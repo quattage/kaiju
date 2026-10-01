@@ -55,6 +55,8 @@ func (p BackgroundColor) Process(panel *ui.Panel, elm *document.Element, values 
 
 	if hex == "color-mix" {
 		hex, _ = functions.ColorMix{}.Process(panel, elm, values[0])
+	} else if hex == "transparent" {
+		hex = matrix.ColorZero().Hex()
 	}
 
 	if newHex, ok := helpers.ColorMap[hex]; ok {

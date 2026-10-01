@@ -16,29 +16,29 @@ import "kaijuengine.com/editor/editor_areas"
 func init() {
 	editor_areas.Register(func() editor_areas.AreaType {
 		return editor_areas.AreaType{
-			ID:      "com.kaiju.area_example",
-			Name:    "ExampleArea",
-			Handler: &Handler{},
-			Flags:   editor_areas.AreaCapabilityFlagDockable,
+			ID:             "com.kaiju.area_example",
+			Name:           "ExampleArea",
+			Flags:          editor_areas.AreaCapabilityFlagDockable,
+			HandlerFactory: func() editor_areas.AreaHandler { return &Handler{} },
 		}
 	})
 }
 
 type Handler struct{}
 
-func (as *Handler) Open(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
+func (h *Handler) Open(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
 }
 
-func (as *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
+func (h *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
 }
 
-func (as *Handler) FocusInterface(editor editor_areas.EditorAreaInterface) {
+func (h *Handler) FocusInterface(editor editor_areas.EditorAreaInterface) {
 }
 
-func (as *Handler) BlurInterface(editor editor_areas.EditorAreaInterface) {
+func (h *Handler) BlurInterface(editor editor_areas.EditorAreaInterface) {
 }
 
-func (as *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
+func (h *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
 }
 
 func (h *Handler) GetOffsets(ed editor_areas.EditorAreaInterface) (float32, float32, float32, float32) {
@@ -49,6 +49,6 @@ func (h *Handler) GetOverlayDimensions() (float32, float32) {
 	return -1, -1
 }
 
-func (as *Handler) IsFocusedOnInput() bool {
+func (h *Handler) IsFocusedOnInput() bool {
 	return false
 }

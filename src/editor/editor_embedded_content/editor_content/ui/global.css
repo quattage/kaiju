@@ -3,6 +3,8 @@
     values are forwarded to layout engine at runtime and accessible here in CSS
 */
 
+/* https://fonts.google.com/icons?icon.set=Material+Icons&icon.style=Filled */
+
 body {
     display: flex;
     flex-direction: column;
@@ -14,105 +16,32 @@ body {
     font-size: var(--ed-size-text-global);
 }
 
-span {
-    display: inline;
-    overflow: visible;
+input {
+    position: absolute;
+    width: 20em;
+    height: 2.2em;
+    overflow: hidden;
+    font-size: 1em;
+    font-weight: normal;
+    color: color-mix(in srgb var(--ed-color-text-passive) black 64%);
+    border: 2px solid color-mix(in srgb var(--ed-color-text-passive) var(--ed-color-panel) 20%);
+    border-radius: 0.5em;
+    background-color: color-mix(in srgb var(--ed-color-background) gray 98%);
 }
 
-p {
-    display: block;
-    width: 100%;
-    margin: 1em 0;
+input:hover {
+    color: color-mix(in srgb var var(--ed-color-text-passive) white 70%);
+    border: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 75%);
+    background-color: color-mix(in srgb var(--ed-color-background) gray 90%);
 }
 
-h1 {
-    display: block;
-    width: 100%;
-    margin: 0.67em 0;
-    font-size: 2em;
-    font-weight: bold;
+input::placeholder {
+    color: color-mix(in srgb var var(--ed-color-text-passive) white 70%);
 }
 
-td,
-th {
-    text-align: left;
-    padding: 8px;
-}
-
-tr:nth-child(even) {
-    background-color: #dddddd;
-}
-
-.halfWidth {
-    width: 50%;
-}
-
-.sectionHeader {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.1em;
-    font-weight: bold;
-    padding: 6px 12px;
-    width: 100%;
-}
-
-.important {
-    font-size: 2.5em;
-    font-family: "OverusedGrotesk-Regular";
-    font-weight: bold;
-    padding: 0px 6px;
-    bottom: 1.45em;
-}
-
-.silent {
-    font-weight: bold;
-    font-size: 1.3em;
-    color: white;
-    padding: 3px
-}
-
-.verticalCenter {
-    top: 50%;
-    bottom: 50%;
-}
-
-.headerTable {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    width: 100%;
-    color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
-    background-color: color-mix(in srgb var(--ed-color-panel) gray 90%);
-    border-bottom: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
-    border-top: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
-    font-size: 1.2em;
-    padding: 6px 16px 4px 16px;
-    min-width: 0;
-}
-
-.verticalSection {
-    display: flex;
-    flex-direction: row;
-    height: 2.0em;
-}
-
-.verticalDivider {
-    height: 75%;
-    width: 2px;
-    top: 25%;
-    left: -0.7em;
-    border-left: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
-}
-
-.headerTableLabel {
-    top: 10%;
-    font-size: 1.2em;
-}
-
-button .silent {
-    padding: 0px 4px 0px 7px;
+input:focus,
+input:active {
+    border: 2px solid color-mix(in srgb var(--ed-color-accent-passive) black 65%);
 }
 
 button {
@@ -120,30 +49,167 @@ button {
     flex-direction: row;
     align-items: center;
     padding: 1px 4px;
+    height: 2.2em;
     font-size: 1em;
     overflow: hidden;
-    color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
-    border: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
-    background-color: var(--ed-color-background);
-}
-
-button .important {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 1px 4px;
-    font-size: 1em;
-    overflow: hidden;
-    color: white;
-    background-color: var(--ed-color-accent-passive);
-    border: none;
+    color: color-mix(in srgb var(--ed-color-text-passive) black 75%);
+    border: 2px solid color-mix(in srgb var(--ed-color-text-passive) var(--ed-color-panel) 20%);
+    border-radius: 0.5em;
+    background-color: color-mix(in srgb var(--ed-color-background) gray 98%);
 }
 
 button:hover {
-    background-color: var(--ed-color-accent-active);
+    color: color-mix(in srgb var var(--ed-color-text-passive) white 70%);
+    border: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 75%);
+    background-color: color-mix(in srgb var(--ed-color-background) gray 90%);
 }
 
-button:active {
-    padding: 1px 4px;
+button.important {
+    color: white;
     background-color: var(--ed-color-accent-passive);
+    border: 0px black
+}
+
+button.important:hover {
+    color: white;
+    background-color: color-mix(in srgb var(--ed-color-accent-passive) black 75%);
+    border: 0px black
+}
+
+button.important:active {
+    color: white;
+    background-color: var(--ed-color-accent-passive);
+    border: 0px black
+}
+
+button.disabled,
+button.disabled:hover,
+button.disabled:active {
+    color: color-mix(in srgb var(--ed-color-text-passive) black 45%);
+    border: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 45%);
+    background-color: color-mix(in srgb var(--ed-color-background) gray 90%);
+}
+
+button.icon {
+    text-align: center;
+}
+
+div.important {
+    font-size: 2.5em;
+    font-family: "OverusedGrotesk-Regular";
+    font-weight: bold;
+    padding: 0px 4px;
+    bottom: 1.8em;
+}
+
+span.important {
+    font-size: 1.2em;
+    color: color-mix(in srgb var(--ed-color-text-passive) black 85%);
+    font-family: "OverusedGrotesk-Regular";
+    font-weight: bold;
+}
+
+span .silent {
+    font-size: 1em;
+    color: color-mix(in srgb var(--ed-color-text-passive) black 55%);
+    left: 20em;
+}
+
+div .column {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    align-items: start;
+    align-content: start;
+    padding: 0.1em;
+}
+
+div .row {
+    display: flex;
+    flex-direction: row;
+    text-align: left;
+    align-items: start;
+    align-content: start;
+    padding: 0.1em;
+}
+
+.halfWidth {
+    width: 50%;
+}
+
+.sectionHeader {
+    top: 0.5em;
+    font-size: 1.1em;
+    font-weight: bold;
+    padding: 6px 12px;
+    width: 100%;
+}
+
+.verticalSection {
+    display: flex;
+    flex-direction: row;
+}
+
+.verticalDivider {
+    height: 75%;
+    width: 2px;
+    top: 15%;
+    left: -0.7em;
+    color: transparent;
+    background-color: transparent;
+    border-left: 2px solid color-mix(in srgb var(--ed-color-text-passive) black 65%);
+}
+
+.tableHeader {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 2em;
+    width: 100%;
+    color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    background-color: color-mix(in srgb var(--ed-color-panel) gray 95%);
+    border-bottom: 2px solid color-mix(in srgb var(--ed-color-text-passive) var(--ed-color-panel) 20%);
+    border-top: 2px solid color-mix(in srgb var(--ed-color-text-passive) var(--ed-color-panel) 20%);
+    font-size: 1em;
+    padding: 3px 16px 3px 16px;
+}
+
+.tableContent:nth-child even {
+    background-color: color-mix(in srgb var(--ed-color-panel) black 70%);
+}
+
+.tableSection {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
+    background-color: color-mix(in srgb var(--ed-color-panel) black 88%);
+    font-size: 1em;
+    padding: 3px 16px 5px 16px;
+}
+
+.tableSection .important {
+    color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
+}
+
+.tableContent {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    text-overflow: clip;
+}
+
+button.tableSectionButton {
+    height: 100%;
+    border: none;
+    background-color: transparent;
+    padding: 0px 16px;
+}
+
+button.tableSectionButton:hover {
+    height: 100%;
+    border: none;
+    background-color: color-mix(in srgb var(--ed-color-panel) gray 95%);
+    padding: 0px 16px;
 }

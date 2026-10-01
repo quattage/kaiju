@@ -47,62 +47,45 @@ func (ed *Editor) setProjectName(name string) {
 }
 
 func (ed *Editor) createProject(name, path, templatePath string) {
-	defer tracing.NewRegion("Editor.createProject").End()
-	err := ed.project.Initialize(path, templatePath, versions.Editor)
-	if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
-		slog.Error("failed to create the project", "error", err)
-		return
-	}
-	ed.setProjectName(name)
-	ed.postProjectLoad()
-	ed.UIWorkspace().FocusInterface()
+	ed.Host().RunOnMainThread(func() {
+		defer tracing.NewRegion("Editor.createProject").End()
+		err := ed.project.Initialize(path, templatePath, versions.Editor)
+		if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
+			slog.Error("failed to create the project", "error", err)
+			return
+		}
+		ed.setProjectName(name)
+		ed.postProjectLoad()
+		ed.UIWorkspace().FocusInterface()
+	})
 }
 
 func (ed *Editor) openProject(path string) {
-	defer tracing.NewRegion("Editor.openProject").End()
-	if err := ed.project.Open(path); err != nil {
-		slog.Error("failed to open the project", "error", err)
-		lastCount := len(ed.settings.RecentProjects)
-		ed.settings.RecentProjects = klib.SlicesRemoveElement(ed.settings.RecentProjects, path)
-		if len(ed.settings.RecentProjects) != lastCount {
-			ed.settings.Save()
+	ed.Host().RunOnMainThread(func() {
+		defer tracing.NewRegion("Editor.openProject").End()
+		if err := ed.project.Open(path); err != nil {
+			slog.Error("failed to open the project", "error", err)
+			lastCount := len(ed.settings.RecentProjects)
+			ed.settings.RecentProjects = klib.SlicesRemoveElement(ed.settings.RecentProjects, path)
+			if len(ed.settings.RecentProjects) != lastCount {
+				ed.settings.Save()
+			}
+			return
 		}
-		return
-	}
-	projectVersion := ed.project.Settings.EditorVersion
-	finishLoad := func() {
+		projectVersion := ed.project.Settings.EditorVersion
+		hasEngineSource := ed.project.FileSystem().HasEngineCode()
+		// This is a special hidden feature for editor/engine developers to be able
+		// to force updating engine code in projects. This makes it easier than
+		// bumping the engine version to do the same thing (or deleting kaiju src)
+		kb := &ed.host.Window.Keyboard
+		forceReplace := kb.HasShift() || kb.HasCtrlOrMeta()
+		if projectVersion != versions.Editor || !hasEngineSource || forceReplace {
+			// TODO project upgrading
+			slog.Error("Project Version Mispoat")
+			return
+		}
 		ed.setProjectName(ed.project.Name())
 		ed.postProjectLoad()
 		ed.UIWorkspace().FocusInterface()
-	}
-	hasEngineSource := ed.project.FileSystem().HasEngineCode()
-	// This is a special hidden feature for editor/engine developers to be able
-	// to force updating engine code in projects. This makes it easier than
-	// bumping the engine version to do the same thing (or deleting kaiju src)
-	kb := &ed.host.Window.Keyboard
-	forceReplace := kb.HasShift() || kb.HasCtrlOrMeta()
-	if projectVersion != versions.Editor || !hasEngineSource || forceReplace {
-		// title := "Upgrade project"
-		// description := "Your project is for an older version of the editor, would you like to upgrade it? Please make sure you've backed up your project (with VCS for example) before proceeding."
-		// if projectVersion == EditorVersion {
-		// 	title = "Import engine code"
-		// 	description = "Your project doesn't have the engine source, would you like to import it? This is typical if you don't commit the `kaiju` folder to your repository."
-		// }
-		// confirm_prompt.Show(ed.host, confirm_prompt.Config{
-		// 	Title:       title,
-		// 	Description: description,
-		// 	ConfirmText: "Yes",
-		// 	CancelText:  "Cancel",
-		// 	OnConfirm: func() {
-		// 		if err := ed.project.TryUpgrade(); err != nil {
-		// 		} else {
-		// 			ed.project.Settings.EditorVersion = EditorVersion
-		// 			ed.project.Settings.Save(ed.ProjectFileSystem())
-		// 			finishLoad()
-		// 		}
-		// 	},
-		// })
-	} else {
-		finishLoad()
-	}
+	})
 }

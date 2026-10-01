@@ -6,6 +6,8 @@
 
 package rules
 
+import "strings"
+
 type RuleState = int
 
 const (
@@ -44,6 +46,19 @@ type SelectorGroup struct {
 	Selectors  []Selector
 	Rules      []Rule
 	MediaQuery MediaQuery
+}
+
+func (r *SelectorPart) String() string {
+	var output strings.Builder
+	output.Grow(len(r.Args) * 5)
+	output.WriteString(r.Name)
+	output.WriteString(": [")
+	for x := 0; x < len(r.Args); x++ {
+		arg := r.Args[x]
+		output.WriteString(arg)
+		output.WriteString(", ")
+	}
+	return output.String()[:len(output.String())-2] + "]"
 }
 
 func (m *MediaQuery) IsValid() bool { return m.Key != "" }

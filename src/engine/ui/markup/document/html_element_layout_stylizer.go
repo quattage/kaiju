@@ -96,6 +96,10 @@ func (s *ElementLayoutStylizer) HasRule(rule string) bool {
 	return false
 }
 
+func (s *ElementLayoutStylizer) Rules() []rules.Rule {
+	return s.styleRules
+}
+
 func (s *ElementLayoutStylizer) clearRuleBindings() {
 	e := s.element.Value()
 	if e == nil {

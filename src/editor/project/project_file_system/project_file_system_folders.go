@@ -22,6 +22,7 @@ const (
 	StockFolder         = "database/stock"
 	DebugFolder         = "database/debug"
 	ProjectConfigFile   = "database/project.json"
+	SessionRestoreFile  = "database/session.json"
 	EditorCache         = "database/.edcache"
 )
 

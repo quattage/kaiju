@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -52,6 +53,9 @@ func StripFloatStringZeros(fString string) string {
 }
 
 func NameOfFunction(fn any) string {
+	if fn == nil {
+		return ""
+	}
 	pc := reflect.ValueOf(fn).Pointer()
 	f := runtime.FuncForPC(pc)
 	if f == nil {
@@ -61,7 +65,7 @@ func NameOfFunction(fn any) string {
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		name = name[i+1:]
 	}
-	return name
+	return strings.TrimSuffix(name, "-fm")
 }
 
 func ToSnakeCase(str string) string {
@@ -114,6 +118,10 @@ func ByteCountToString(bytes uint64) string {
 	default:
 		return fmt.Sprintf("%dB", bytes)
 	}
+}
+
+func TimeToDatetring(t time.Time) string {
+	return t.Local().String()
 }
 
 // StringValueCompare compares two strings as integers or floats if possible,

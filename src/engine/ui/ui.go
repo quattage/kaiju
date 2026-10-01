@@ -1067,6 +1067,10 @@ func (ui *UI) Hide() {
 	ui.syncVisibility()
 }
 
+func (ui *UI) IsVisible() bool {
+	return ui.flags.hidden()
+}
+
 func (ui *UI) SetVisibility(visible bool) {
 	defer tracing.NewRegion("UI.ShowToggle").End()
 	if visible {

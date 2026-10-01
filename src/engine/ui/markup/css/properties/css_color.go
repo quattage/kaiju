@@ -46,6 +46,8 @@ func (p Color) Process(panel *ui.Panel, elm *document.Element, values []rules.Pr
 		hex, _ = functions.Rgba{}.Process(panel, elm, values[0])
 	case "color-mix":
 		hex, _ = functions.ColorMix{}.Process(panel, elm, values[0])
+	case "transparent":
+		hex = matrix.ColorZero().Hex()
 	}
 
 	if newHex, ok := helpers.ColorMap[hex]; ok {

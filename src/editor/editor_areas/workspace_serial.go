@@ -65,7 +65,7 @@ func (wm *WorkspaceManager) LoadWorkspace(config *WorkspaceConfiguration) {
 	newAreas := []*Area{}
 	wm.MainArea = wm.deserializeArea(config.tree, 0, newAreas)
 	for _, area := range newAreas {
-		if area.Type.Handler != nil {
+		if area.Type.HandlerFactory != nil {
 			area.open(wm)
 		}
 	}
@@ -76,7 +76,7 @@ func (wm *WorkspaceManager) deserializeArea(tree []branch, index int16, newAreas
 	if member.a >= 0 && member.b >= 0 {
 		area := &Area{
 			Type:           AreaTypeComposite,
-			Manager:        &ui.Manager{},
+			manager:        &ui.Manager{},
 			ChildA:         wm.deserializeArea(tree, member.a, newAreas),
 			ChildB:         wm.deserializeArea(tree, member.b, newAreas),
 			SplitDirection: SplitDirection(member.dir),
@@ -92,7 +92,7 @@ func (wm *WorkspaceManager) deserializeArea(tree []branch, index int16, newAreas
 	}
 	area := &Area{
 		Type:           *at,
-		Manager:        &ui.Manager{},
+		manager:        &ui.Manager{},
 		ChildA:         nil,
 		ChildB:         nil,
 		SplitDirection: SplitHorizontal,

@@ -450,3 +450,12 @@ type Where struct{}
 func (p Where) Key() string                                { return "where" }
 func (p Where) IsFunction() bool                           { return true }
 func (p Where) AlterRules(rules []rules.Rule) []rules.Rule { return rules }
+
+// pseudo-elements
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/::placeholder
+type Placeholder struct{}
+
+func (p Placeholder) Key() string                                { return "placeholder" }
+func (p Placeholder) IsFunction() bool                           { return false }
+func (p Placeholder) AlterRules(rules []rules.Rule) []rules.Rule { return rules }

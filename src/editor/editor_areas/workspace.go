@@ -25,18 +25,26 @@ type WorkspaceManager struct {
 	StageView       editor_stage_view.StageView
 }
 
-func (wm *WorkspaceManager) Initialize(editor EditorAreaInterface) {
-	wm.editor = editor
+// Initialize performs the first-time
+func (wm *WorkspaceManager) Initialize(ed EditorAreaInterface) *Area {
+	wm.editor = ed
 	wm.activeWorkspace = ""
 	klib.ScreenUnitsDPMM = func() float64 {
-		return editor.Host().Window.DotsPerMillimeter()
+		return ed.Host().Window.DotsPerMillimeter()
 	}
 	klib.ScreenUnitsScaleFactor = func() float64 {
-		return float64(editor.Settings().UIScale)
+		return float64(ed.Settings().UIScale)
 	}
-	wm.Refresh(editor)
-	wm.Open("com.kaiju.area_primary", nil, SplitHorizontal, -1)
-	wm.OpenOverlay("com.kaiju.area_splash_screen", -1, -1)
+	wm.Refresh(ed)
+	_, err := wm.Open("com.kaiju.area_primary", nil, SplitHorizontal, -1)
+	if err != nil {
+		panic("Failed to open primary area! - " + err.Error())
+	}
+	area, err := wm.OpenOverlay("com.kaiju.area_splash_screen", -1, -1)
+	if err != nil {
+		panic("Failed to open splash screen! - " + err.Error())
+	}
+	return area
 }
 
 // Refresh rebuilds only the necessary elements to bring the workspace
@@ -69,7 +77,7 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 		return nil, fmt.Errorf("%s isn't overlayable!", areaToOpen)
 	}
 	newArea := newBlankArea(areaToOpen)
-	wx, wy := areaToOpen.Handler.GetOverlayDimensions()
+	wx, wy := areaToOpen.HandlerFactory().GetOverlayDimensions()
 	maxW := float32(wm.editor.Host().Window.Width())
 	maxH := float32(wm.editor.Host().Window.Height())
 	if wx < 800 && wy < 800 {
@@ -169,7 +177,7 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 			parentArea.Ratio = ratio
 		}
 	}
-	parentArea.Manager = nil
+	parentArea.manager = nil
 	parentArea.Panel = nil
 	parentArea.doc = nil
 	parentArea.Type = AreaTypeComposite
@@ -239,53 +247,6 @@ func (wm *WorkspaceManager) Update(deltaTime float64) {
 	}
 }
 
-// add all deferred registry entries to the persistent registry
-// and close the deferred registry.
-func (wm *WorkspaceManager) finalizeATRegistry() {
-	if len(deferredAreaTypeRegistry) <= 0 {
-		return
-	}
-	if wm.areaTypes == nil {
-		wm.areaTypes = make(map[string]func() AreaType, 32)
-	}
-	for _, factory := range deferredAreaTypeRegistry {
-		areaType := factory()
-		if !regex.MatchString(areaType.ID) {
-			slog.Error(fmt.Sprintf("Skipped area registration at ID '%s' - This ID contains invalid characters! (expected %s)", areaType.ID, regex.String()))
-			continue
-		}
-		if areaType.Handler == nil {
-			slog.Error(fmt.Sprintf("Failed to register Area '%s' - Factory failed to supply a Handler!", areaType.ID))
-			continue
-		}
-		_, exists := wm.areaTypes[areaType.ID]
-		if exists {
-			slog.Warn(fmt.Sprintf("Skipped redundant re-registration of AreaType at ID '%s'", areaType.ID))
-			continue
-		}
-		slog.Debug(fmt.Sprintf("Registered %s", areaType.String()))
-		wm.areaTypes[areaType.ID] = factory
-	}
-	deferredAreaTypeRegistry = nil
-}
-
-// // A quick debug helper that places a small floating square above all UI elements
-// // at the provided position.
-// func (wm *WorkspaceManager) RevealPosition(at func() matrix.Vec2) {
-// 	if wm.debugManager == nil {
-// 		wm.debugManager = &ui.Manager{}
-// 		wm.debugManager.Init(wm.editor.Host())
-// 	}
-// 	ds := DebugSquare{
-// 		posGetter: at,
-// 		panel:     wm.debugManager.Add().ToPanel(),
-// 		size:      8,
-// 	}
-// 	ds.panel.Init(nil, ui.ElementTypePanel)
-// 	ds.Update()
-// 	wm.debugs = append(wm.debugs, &ds)
-// }
-
 // GetWorkspace returns the WorkspaceConfiguration mapped to the provided string
 // ID, should one exist. Returns nil otherwise.
 func (wm *WorkspaceManager) GetWorkspace(id string) *WorkspaceConfiguration {
@@ -313,9 +274,11 @@ func (wm *WorkspaceManager) GetAreaType(id string) *AreaType {
 	return &output
 }
 
-// SwitchToWorkspace performs lifecycle operations necessary to transfer the current
-// configuration of Areas to the one described by the WorkspaceConfiguration at the provided
-// index. It is primarily intended to be called by EditorServices.SwitchToWorkspace
+// SwitchToWorkspace performs lifecycle operations necessary to transfer the
+// current configuration of Areas to the one described by the
+// WorkspaceConfiguration mapped to the provided ID. It is primarily intended
+// to be called by [EditorAreaInterface.SwitchToWorkspace]. Avoid calling this directly
+// if you can call it from the interface.
 func (wm *WorkspaceManager) SwitchToWorkspace(id string) {
 	if len(id) <= 0 {
 		return
@@ -330,4 +293,34 @@ func (wm *WorkspaceManager) SwitchToWorkspace(id string) {
 	}
 	wm.activeWorkspace = id
 	wm.LoadWorkspace(config)
+}
+
+// finalizeATRegistry adds all deferred AreaType registry entries to the
+// persistent map and closes the deferred registry.
+func (wm *WorkspaceManager) finalizeATRegistry() {
+	if len(deferredAreaTypeRegistry) <= 0 {
+		return
+	}
+	if wm.areaTypes == nil {
+		wm.areaTypes = make(map[string]func() AreaType, 32)
+	}
+	for _, factory := range deferredAreaTypeRegistry {
+		areaType := factory()
+		if !regex.MatchString(areaType.ID) {
+			slog.Error(fmt.Sprintf("Skipped area registration at ID '%s' - This ID contains invalid characters! (expected %s)", areaType.ID, regex.String()))
+			continue
+		}
+		if areaType.HandlerFactory == nil {
+			slog.Error(fmt.Sprintf("Failed to register Area '%s' - Factory failed to supply a Handler!", areaType.ID))
+			continue
+		}
+		_, exists := wm.areaTypes[areaType.ID]
+		if exists {
+			slog.Warn(fmt.Sprintf("Skipped redundant re-registration of AreaType at ID '%s'", areaType.ID))
+			continue
+		}
+		slog.Debug(fmt.Sprintf("Registered %s", areaType.String()))
+		wm.areaTypes[areaType.ID] = factory
+	}
+	deferredAreaTypeRegistry = nil
 }

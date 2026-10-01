@@ -1,30 +1,58 @@
 <!DOCTYPE html>
 <html>
 	<body>
+		{{if .RecentProjects}}
 		<span class="sectionHeader">
-			<span class="important">projects</span>
-			<button style="top:0.2em">
-				<span class="silent icon">&#xE5C5;</span>
+			<div class="important">projects</div>
+			<input id="searchBox" style="right:15em;top:0.45em" type="text" placeholder="search..." />
+			<button style="right:19.25em">
+				<span class="icon" style="padding-left:0.6em">&#xe313;</span>
 				<span>Add</span>
 			</button>
-			<button style="top:0.2em" class="important">
-				<span class="silent">+</span>
+			<button class="important" style="right:18em">
+				<span class="icon" style="padding-left:0.6em">&#xe145;</span>
 				<span>New</span>
 			</button>
 		</span>
-		<div class="headerTable">
-			<span style="left:1em" class="verticalSection">
+		<div class="tableHeader">
+			<span style="left:2%" class="verticalSection">
 				<div class="verticalDivider"></div>
-				<div class="headerTableLabel">Name</div>
+				<div>Name</div>
 			</span>
-			<span style="right:22em" class="verticalSection">
+			<span style="right:40%" class="verticalSection">
 				<div class="verticalDivider"></div>
-				<div class="headerTableLabel">Modified</div>
-			</span>
-			<span style="right:15em" class="verticalSection">
-				<div class="verticalDivider"></div>
-				<div class="headerTableLabel">Size</div>
+				<div>Modified</div>
 			</span>
 		</div>
+		<div class="tableContent">
+			{{range .RecentProjects}}
+			<div class="tableSection" style="height:3.5em">
+				<button style="width:55%" class="column tableSectionButton" onclick="openRecentProject" target="{{.Path}}">
+					<span class="important">{{.Name}}</span>
+					<span class="silent">{{.Path}}</span>
+				</button>
+				<div class="column" style="right:80.5%">
+					<span class="important">{{.Modified}}</span>
+					<span class="silent">{{.Time}}</span>
+				</div>
+				<div class="row" style="right:75%">
+					<button class="icon" style="font-size:1.4em">&#xe5d3</button>
+				</div>
+			</div>
+			{{end}}
+		</div>
+		{{else}}
+		<span class="sectionHeader">
+			<div class="important">projects</div>
+			<button style="right:19.25em">
+				<span class="icon" style="padding-left:0.6em">&#xe313;</span>
+				<span>Add</span>
+			</button>
+			<button class="important" style="right:18em">
+				<span class="icon" style="padding-left:0.6em">&#xe145;</span>
+				<span>New</span>
+			</button>
+		</span>
+		{{end}}
 	</body>
 </html>

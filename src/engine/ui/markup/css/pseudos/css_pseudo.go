@@ -68,6 +68,7 @@ var PseudoMap = map[string]Pseudo{
 	"past":               Past{},
 	"picture-in-picture": PictureInPicture{},
 	"placeholder-shown":  PlaceholderShown{},
+	"placeholder":        Placeholder{},
 	"paused":             Paused{},
 	"playing":            Playing{},
 	"read-only":          ReadOnly{},
