@@ -103,11 +103,7 @@ func (wm *WorkspaceManager) deserializeArea(tree []branch, index int16, newAreas
 }
 
 func (a *Area) String() string {
-	if a.Type.ID == AreaTypeComposite.ID {
-		return fmt.Sprintf("Area[%s, Children: (%s, %s), Split: %f %s]", a.Type.String(), a.ChildA.Type.String(), a.ChildB.Type.String(), a.Ratio, a.SplitDirection)
-	} else {
-		return fmt.Sprintf("Area[%s]", a.Type.String())
-	}
+	return fmt.Sprintf("Type: %s, Manager? %b, Root? %b, Owner: %s", a.Type, a.manager != nil, a.Panel != nil, a.owner)
 }
 
 func (at *AreaType) String() string {
@@ -116,6 +112,10 @@ func (at *AreaType) String() string {
 
 func (wc *WorkspaceConfiguration) String() string {
 	return fmt.Sprintf("WorkspaceConfiguration[%s, '%s']", wc.ID, wc.Name)
+}
+
+func (c *Container) String() string {
+	return fmt.Sprintf("Container[Panel? %t, Owner? %t, Document? %t]", c.owner != nil, c.Panel != nil, c.doc != nil)
 }
 
 func (sd SplitDirection) String() string {

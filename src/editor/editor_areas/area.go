@@ -178,6 +178,7 @@ func (a *Area) openWithSize(wm *WorkspaceManager, width, height, radius float32)
 	a.Panel.DontFitContent()
 	a.Panel.SetBorderRadius(radius, radius, radius, radius)
 	a.GetHandler().Open(a, wm.editor)
+	a.Panel.Base().SetDirty(ui.DirtyTypeGenerated)
 	slog.Debug(fmt.Sprintf("Opened '%s'", a.Type.ID))
 }
 
@@ -250,57 +251,6 @@ func (a *Area) StretchFlexColumn() {
 	a.Panel.SetFlexJustify(ui.FlexJustifySpaceBetween)
 }
 
-// HTMLContainer creates a document from the HTML file at the provided relative
-// path. The resulting document is given the global CSS for the current editor
-// theme, configured for this Area, and added to it. This is the only call you
-// should need to get UI to appear in an area.
-func (a *Area) HTMLContainer(ed EditorAreaInterface, relativePath string, withData any, functions ...func(*document.Element)) *Container {
-	css := ed.Theme().GetGlobalCSS(ed.Host())
-	doc, err := ed.Host().AssetDatabase().ReadText(relativePath)
-	if err != nil {
-		slog.Error(fmt.Sprintf("Failed to read file '%s'", relativePath), "error", err)
-		return &Container{owner: a, doc: nil, Panel: nil}
-	}
-	slog.Debug(fmt.Sprintf("Opening document '%s'", relativePath))
-	docRoot := a.MakeDocumentRoot()
-	if len(functions) <= 0 {
-		return a.applyDocument(docRoot.UIPanel, markup.DocumentFromHTMLString(a.manager, doc, css, withData, nil, docRoot))
-	}
-	var funcMap map[string]func(*document.Element) = make(map[string]func(*document.Element))
-	for x, member := range functions {
-		if member == nil {
-			continue
-		}
-		fnName := klib.NameOfFunction(member)
-		if fnName == "" {
-			slog.Error(fmt.Sprintf("Failed to encode function at index %v", x))
-		}
-		slog.Debug(fmt.Sprintf("Mapped HTML function '%s'", fnName))
-		funcMap[fnName] = member
-	}
-	return a.applyDocument(docRoot.UIPanel, markup.DocumentFromHTMLString(a.manager, doc, css, withData, funcMap, docRoot))
-}
-
-func (a *Area) applyDocument(root *ui.Panel, doc *document.Document) *Container {
-	if doc == nil || len(doc.Elements) == 0 {
-		slog.Error(fmt.Sprintf(
-			"Couldn't apply HTML document for '%s': no elements",
-			a.Type.String(),
-		))
-		return &Container{
-			owner: a,
-			doc:   doc,
-			Panel: nil,
-		}
-	}
-	output := &Container{
-		owner: a,
-		doc:   doc,
-		Panel: root,
-	}
-	return output
-}
-
 // MakeDocumentRoot creates a new, blank Element and configures its panel.
 // The resulting panel belongs to this Area's manager and parented to its root.
 // A call to this method is made automatically by HTMLContainer() when building
@@ -364,6 +314,21 @@ func (a *Area) LogoImage(ed EditorAreaInterface, texture string, widthRatio floa
 	return &Container{owner: a, Panel: panel}
 }
 
+func (a *Area) EmptyContainer(editor EditorAreaInterface) *Container {
+	a.assertInitialized()
+	panel := a.manager.Add().ToPanel()
+	panel.Init(nil, ui.ElementTypePanel)
+	a.Panel.AddChild(panel.Base())
+	size := a.Panel.Base().Layout().PixelSize()
+	panel.Base().Layout().Scale(size.X(), size.Y())
+	panel.Base().Layout().SetPositioning(ui.PositioningRelative)
+	panel.Base().Layout().SetOffset(0, 0)
+	panel.SetColor(editor.Theme().ColorPanel)
+	panel.DontFitContent()
+	panel.Base().Layout().SetZ(a.Panel.Base().Layout().Z() + 0.1)
+	return &Container{owner: a, Panel: panel}
+}
+
 // ContextBar draws the common row-of-rows style ContextBar used everywhere in the Kaiju UI.
 func (a *Area) ContextBar(ed EditorAreaInterface) ContextBarElement {
 	a.assertInitialized()
@@ -388,6 +353,57 @@ func (a *Area) ContextBar(ed EditorAreaInterface) ContextBarElement {
 		cbContent.AddChild(field.Panel.Base())
 	}
 	output.Panel.InheritBorderRadiusFrom(output.owner.Panel)
+	return output
+}
+
+// HTMLContainer creates a document from the HTML file at the provided relative
+// path. The resulting document is given the global CSS for the current editor
+// theme, configured for this Area, and added to it. This is the only call you
+// should need to get UI to appear in an area.
+func (a *Area) HTMLContainer(ed EditorAreaInterface, relativePath string, withData any, functions ...func(*document.Element)) *Container {
+	css := ed.Theme().GetGlobalCSS(ed.Host())
+	doc, err := ed.Host().AssetDatabase().ReadText(relativePath)
+	if err != nil {
+		slog.Error(fmt.Sprintf("Failed to read file '%s'", relativePath), "error", err)
+		return &Container{owner: a, doc: nil, Panel: nil}
+	}
+	slog.Debug(fmt.Sprintf("Opening document '%s'", relativePath))
+	docRoot := a.MakeDocumentRoot()
+	if len(functions) <= 0 {
+		return a.applyDocument(docRoot.UIPanel, markup.DocumentFromHTMLString(a.manager, doc, css, withData, nil, docRoot))
+	}
+	var funcMap map[string]func(*document.Element) = make(map[string]func(*document.Element))
+	for x, member := range functions {
+		if member == nil {
+			continue
+		}
+		fnName := klib.NameOfFunction(member)
+		if fnName == "" {
+			slog.Error(fmt.Sprintf("Failed to encode function at index %v", x))
+		}
+		slog.Debug(fmt.Sprintf("Mapped HTML function '%s'", fnName))
+		funcMap[fnName] = member
+	}
+	return a.applyDocument(docRoot.UIPanel, markup.DocumentFromHTMLString(a.manager, doc, css, withData, funcMap, docRoot))
+}
+
+func (a *Area) applyDocument(root *ui.Panel, doc *document.Document) *Container {
+	if doc == nil || len(doc.Elements) == 0 {
+		slog.Error(fmt.Sprintf(
+			"Couldn't apply HTML document for '%s': no elements",
+			a.Type.String(),
+		))
+		return &Container{
+			owner: a,
+			doc:   doc,
+			Panel: nil,
+		}
+	}
+	output := &Container{
+		owner: a,
+		doc:   doc,
+		Panel: root,
+	}
 	return output
 }
 

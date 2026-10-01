@@ -213,6 +213,15 @@ func (wm *WorkspaceManager) Close(areaToClose *Area) {
 	areaToClose.close(wm)
 }
 
+func (wm *WorkspaceManager) CloseOverlay(areaID string) {
+	for _, area := range wm.Overlays {
+		if area.Type.ID != areaID {
+			continue
+		}
+		area.close(wm)
+	}
+}
+
 func (wm *WorkspaceManager) FocusInterface() {
 	if wm.MainArea == nil {
 		return

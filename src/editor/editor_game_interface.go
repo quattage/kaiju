@@ -81,7 +81,7 @@ func (EditorGame) Launch(host *engine.Host) {
 		// editorPluginRegistry. On match it invokes the onResolved callback
 		// (newProjectOverlay) synchronously; on mismatch it shows a modal
 		// that owns the resolution flow and calls onResolved itself.
-		ed.validateCompiledPlugins(ed.initialLoad)
+		ed.validateCompiledPlugins(ed.lateLoadUI)
 	})
 	if build.Debug {
 		console.For(host).AddCommand("showlods",

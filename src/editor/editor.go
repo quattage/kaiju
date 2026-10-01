@@ -13,7 +13,6 @@ import (
 	"kaijuengine.com/build"
 	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_areas"
-	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_logging"
 	"kaijuengine.com/editor/editor_plugin"
@@ -29,15 +28,13 @@ import (
 	"kaijuengine.com/matrix"
 	platformPower "kaijuengine.com/platform/power"
 	"kaijuengine.com/platform/profiler/tracing"
-
-	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/textures"
 
 	// we import the default areas so that their initializers are hit
 	_ "kaijuengine.com/editor/editor_areas/defaults/fallback"
 	_ "kaijuengine.com/editor/editor_areas/defaults/primary"
 	"kaijuengine.com/editor/editor_areas/defaults/splash_screen"
-	_ "kaijuengine.com/editor/editor_areas/defaults/splash_screen"
+	_ "kaijuengine.com/editor/editor_areas/defaults/throbber"
 )
 
 // Editor is the entry point structure for the entire editor. It acts as the
@@ -109,14 +106,6 @@ func (ed *Editor) IsInputFocused() bool {
 	return false
 }
 
-func (ed *Editor) earlyLoadUI() {
-	defer tracing.NewRegion("Editor.earlyLoadUI").End()
-	area := ed.wsm.Initialize(ed)
-	splash := area.GetConformedHandler[*splash_screen.Handler]()
-	splash.HandleCreateProject = ed.createProject
-	splash.HandleOpenProject = ed.openProject
-}
-
 func (ed *Editor) UpdateSettings() {
 	ed.setFrameRateLimitForPowerStatus(ed.queryAndCachePowerStatus())
 	if matrix.Approx(ed.settings.UIScrollSpeed, 0) {
@@ -183,52 +172,6 @@ func (ed *Editor) effectiveRefreshRate(status platformPower.Status) int32 {
 	return klib.Clamp(refreshRate, 0, 320)
 }
 
-// initialLoad is called just after plugins have finished validating.
-// This is used to start up the engine splash and bootstrap the currently
-// active UI workspace
-func (ed *Editor) initialLoad() {
-	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureSamplerModeClip, textures.TextureFilterLinear)
-	if build.Debug && ed.initAutoTest() {
-		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
-	} else {
-		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
-	}
-}
-
-func (ed *Editor) postProjectLoad() {
-	defer tracing.NewRegion("Editor.lateLoadUI").End()
-	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
-	slog.Info("compiling the project to get things ready")
-	{
-		// Read the project source synchronosly for now, if not, any stage loading
-		// before this is complete will have issues.
-		ed.project.ReadSourceCode()
-	}
-	editorContent := ed.host.AssetDatabase().(*editor_embedded_content.EditorContent)
-	editorContent.Pfs = ed.project.FileSystem()
-	editorContent.SetProjectContentIndex(ed.project.CacheDatabase().List())
-	ed.events.OnContentAdded.Add(func(ids []string) {
-		editorContent.IndexProjectContentIDs(ed.project.CacheDatabase(), ids)
-	})
-	ed.events.OnContentRemoved.Add(editorContent.RemoveProjectContentIDs)
-	ed.host.TextureCache().SetUploadBudget(rendering.TextureUploadBudget{
-		MaxCreatesPerFrame: launchMaxTextureCreatesPerFrame,
-		MaxBytesPerFrame:   launchMaxTextureBytesPerFrame,
-	})
-	ed.setupWindowActivity()
-	ed.connectFileDropRouter()
-	// goroutine
-	go ed.project.CompileDebug()
-
-	for k, v := range editorPluginRegistry {
-		if err := v.Launch(ed); err != nil {
-			slog.Error("failed to launch plugin", "key", k, "error", err)
-			continue
-		}
-		ed.plugins = append(ed.plugins, v)
-	}
-}
-
 func (ed *Editor) update(deltaTime float64) {
 	ed.UIWorkspace().Update(deltaTime)
 }
@@ -253,4 +196,21 @@ func (ed *Editor) updatePowerState(deltaTime float64) {
 	}
 	ed.power.lastStatus = status
 	ed.setFrameRateLimitForPowerStatus(status)
+}
+
+func (ed *Editor) earlyLoadUI() {
+	defer tracing.NewRegion("Editor.earlyLoadUI").End()
+	area := ed.wsm.Initialize(ed)
+	splash := area.GetConformedHandler[*splash_screen.Handler]()
+	splash.HandleCreateProject = ed.createProject
+	splash.HandleOpenProject = ed.openProject
+}
+
+func (ed *Editor) lateLoadUI() {
+	ed.host.TextureCache().Texture("MaterialIcons-Regular.png", textures.TextureSamplerModeClip, textures.TextureFilterLinear)
+	if build.Debug && ed.initAutoTest() {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
+	} else {
+		ed.updateId = ed.host.Updater.AddUpdate(ed.update)
+	}
 }

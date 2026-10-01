@@ -41,6 +41,9 @@ type Handler struct {
 	// screen either by navigating to it directly or by clicking on its recent
 	// project entry. This event is configured automatically by the editor.
 	HandleOpenProject func(path string)
+
+	// Set this to true to disable interaction with the splash screen
+	lockout bool
 }
 
 type RecentProject struct {
@@ -52,6 +55,7 @@ type RecentProject struct {
 }
 
 func (h *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
+	h.lockout = false
 	h.RefreshRecents(ed.Settings().RecentProjects)
 	area.SetMinimunWindowSize(ed)
 	bkg := area.BackgroundImage(ed, "kaiju-splash.png", 1)
@@ -119,15 +123,18 @@ func openProjectSettings(path string) (*project.Settings, error) {
 }
 
 func (h *Handler) openRecentProject(elm *document.Element) {
-	defer tracing.NewRegion("splash_screen.openRecentProject").End()
 	h.openProjectAtPath(elm.Attribute("target"))
 }
 
 func (h *Handler) openProjectAtPath(path string) {
-	if h.HandleOpenProject == nil {
-		slog.Error("OnOpen hasn't been assigned yet! This indicates a load order issue.")
+	if h.lockout {
 		return
 	}
+	if h.HandleOpenProject == nil {
+		slog.Error("HandleOpenProject hasn't been assigned yet! This indicates a load order issue.")
+		return
+	}
+	h.lockout = true
 	h.HandleOpenProject(path)
 }
 

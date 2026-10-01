@@ -11,11 +11,13 @@ import (
 	"log/slog"
 
 	"kaijuengine.com/build"
+	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/editor/editor_embedded_content/versions"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
 func CreateNewProjectFromCLI(path string) {
@@ -39,29 +41,30 @@ func CreateNewProjectFromCLI(path string) {
 	}
 }
 
-func (ed *Editor) setProjectName(name string) {
-	ed.host.RunOnMainThread(func() {
-		ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", name))
-	})
-	ed.project.SetName(name)
-}
-
 func (ed *Editor) createProject(name, path, templatePath string) {
-	ed.Host().RunOnMainThread(func() {
+	slog.Info("Creating new project...")
+	ed.UIWorkspace().CloseOverlay("com.kaiju.area_splash_screen")
+	ed.UIWorkspace().OpenOverlay("com.kaiju.area_throbber", -1, -1)
+	// goroutine
+	go func() {
 		defer tracing.NewRegion("Editor.createProject").End()
 		err := ed.project.Initialize(path, templatePath, versions.Editor)
 		if err != nil && !klib.ErrorIs[project.ConfigLoadError](err) {
 			slog.Error("failed to create the project", "error", err)
 			return
 		}
-		ed.setProjectName(name)
-		ed.postProjectLoad()
-		ed.UIWorkspace().FocusInterface()
-	})
+		ed.Host().RunOnMainThread(func() {
+			ed.finalizeProjectLoad(ed.project.Name())
+		})
+	}()
 }
 
 func (ed *Editor) openProject(path string) {
-	ed.Host().RunOnMainThread(func() {
+	slog.Info("Opening project...")
+	ed.UIWorkspace().CloseOverlay("com.kaiju.area_splash_screen")
+	ed.UIWorkspace().OpenOverlay("com.kaiju.area_throbber", -1, -1)
+	// goroutine
+	go func() {
 		defer tracing.NewRegion("Editor.openProject").End()
 		if err := ed.project.Open(path); err != nil {
 			slog.Error("failed to open the project", "error", err)
@@ -84,8 +87,48 @@ func (ed *Editor) openProject(path string) {
 			slog.Error("Project Version Mispoat")
 			return
 		}
-		ed.setProjectName(ed.project.Name())
-		ed.postProjectLoad()
-		ed.UIWorkspace().FocusInterface()
+		// simple projects load fast so the UI is never seen
+		// time.Sleep(time.Second)
+		ed.Host().RunOnMainThread(func() {
+			ed.finalizeProjectLoad(ed.project.Name())
+		})
+	}()
+}
+
+func (ed *Editor) finalizeProjectLoad(projectName string) {
+	defer tracing.NewRegion("Editor.finalizeProjectLoad").End()
+	ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", projectName))
+	ed.project.SetName(projectName)
+	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
+	slog.Info("Compiling the project to get things ready...")
+	{
+		// Read the project source synchronosly for now, if not, any stage loading
+		// before this is complete will have issues.
+		ed.project.ReadSourceCode()
+	}
+	editorContent := ed.host.AssetDatabase().(*editor_embedded_content.EditorContent)
+	editorContent.Pfs = ed.project.FileSystem()
+	editorContent.SetProjectContentIndex(ed.project.CacheDatabase().List())
+	ed.events.OnContentAdded.Add(func(ids []string) {
+		editorContent.IndexProjectContentIDs(ed.project.CacheDatabase(), ids)
 	})
+	ed.events.OnContentRemoved.Add(editorContent.RemoveProjectContentIDs)
+	ed.host.TextureCache().SetUploadBudget(rendering.TextureUploadBudget{
+		MaxCreatesPerFrame: launchMaxTextureCreatesPerFrame,
+		MaxBytesPerFrame:   launchMaxTextureBytesPerFrame,
+	})
+	ed.setupWindowActivity()
+	ed.connectFileDropRouter()
+	// goroutine
+	go ed.project.CompileDebug()
+
+	for k, v := range editorPluginRegistry {
+		if err := v.Launch(ed); err != nil {
+			slog.Error("Failed to launch plugin", "key", k, "error", err)
+			continue
+		}
+		ed.plugins = append(ed.plugins, v)
+	}
+	ed.UIWorkspace().CloseOverlay("com.kaiju.area_throbber")
+	slog.Info("Project load complete!")
 }
