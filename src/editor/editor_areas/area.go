@@ -86,6 +86,10 @@ type AreaType struct {
 	HandlerFactory func() AreaHandler
 }
 
+func (at *AreaType) String() string {
+	return at.ID
+}
+
 // The Area is the fundamental core of what Kaiju presents to the end user.
 type Area struct {
 	Container
@@ -100,17 +104,16 @@ type Area struct {
 	OverlayPY       float32
 }
 
+func (a *Area) String() string {
+	return a.Type.String()
+}
+
 type AreaHandler interface {
 	Open(area *Area, editor EditorAreaInterface)
 	Close(area *Area, editor EditorAreaInterface)
 	FocusInterface(editor EditorAreaInterface)
 	BlurInterface(editor EditorAreaInterface)
 	Update(area *Area, editor EditorAreaInterface, deltaTime float64, posx, posy, width, height float32)
-	// GetOffsets returns relative pixel measurements [posx, posy, width,
-	// height] to augment the recursive Area tiling layout. Use this to define
-	// a boundary for an Area (such as its top/bottom bars) that the Area tiler
-	// won't draw over.
-	GetOffsets(ed EditorAreaInterface) (float32, float32, float32, float32)
 	// GetOverlayDimensions returns the size [width, height] that this Area
 	// assumes by default when opened as an overlay.
 	GetOverlayDimensions() (float32, float32)
@@ -163,20 +166,21 @@ func newBlankArea(areaType *AreaType) *Area {
 // Called by the workspace manager and serializer to set up this Area's
 // manager and panel
 func (a *Area) open(wm *WorkspaceManager) {
-	a.openWithSize(wm, 10, 10, 0)
+	a.openWithSize(wm, 10, 10)
 }
 
-func (a *Area) openWithSize(wm *WorkspaceManager, width, height, radius float32) {
+func (a *Area) openWithSize(wm *WorkspaceManager, width, height float32) {
 	a.manager = &ui.Manager{}
 	a.manager.Init(wm.editor.Host())
 	a.Panel = a.manager.Add().ToPanel()
 	a.Panel.Init(nil, ui.ElementTypePanel)
-	a.SetBackdropColor(wm.editor.Theme().ColorPanel)
+	a.SetBackdropColor(wm.editor.Theme().ColorBackground)
 	a.Panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	a.Panel.Base().Layout().SetOffset(0, 0)
 	a.Panel.Base().Layout().Scale(float32(width), float32(height))
 	a.Panel.DontFitContent()
-	a.Panel.SetBorderRadius(radius, radius, radius, radius)
+	rad := wm.Editor().Theme().SizeRadiusGlobal
+	a.Panel.SetBorderRadius(rad, rad, rad, rad)
 	a.GetHandler().Open(a, wm.editor)
 	a.Panel.Base().SetDirty(ui.DirtyTypeGenerated)
 	slog.Debug(fmt.Sprintf("Opened '%s'", a.Type.ID))
@@ -593,11 +597,6 @@ func (a *Area) Height() float32 {
 	return a.Panel.Base().Entity().Transform.Scale().Y()
 }
 
-func (a *Area) TakedownLayout() {
-	a.manager.Shutdown()
-	a.Panel = nil
-}
-
 func (a *Area) SetBackdropColor(color matrix.Color) {
 	a.assertInitialized()
 	a.Panel.SetColor(color)
@@ -664,20 +663,25 @@ func (a *Area) IsOverlay() bool {
 
 func (a *Area) Update(editor EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
 	if a.Panel != nil {
-		a.Panel.Base().Layout().SetOffset(posx, posy)
-		a.Panel.Base().Layout().Scale(width, height)
+		if a.IsOverlay() || a.Type.Flags == 0 {
+			a.Panel.Base().Layout().SetOffset(posx, posy)
+			a.Panel.Base().Layout().Scale(width, height)
+		} else {
+			gutter := editor.Theme().SizeTrenchGlobal / 2
+			a.Panel.Base().Layout().SetOffset(posx+gutter, posy+gutter)
+			a.Panel.Base().Layout().Scale(width-gutter, height-gutter)
+		}
 	}
+
+	// TODO scale the Area accoding to how wide the primary panel's scrollbar is, if it
+	// exists and depending on the scrollable axis/axes
+
 	if a.Type.HandlerFactory != nil {
 		a.GetHandler().Update(a, editor, deltaTime, posx, posy, width, height)
-		ox, oy, ds, dy := a.GetHandler().GetOffsets(editor)
-		posx += ox
-		posy += oy
-		width += ds
-		height += dy
 	}
 	if a.ChildA != nil && a.ChildB != nil {
 		if a.ChildA == a || a.ChildB == a {
-			panic("Cycle in Area hierarchy")
+			panic("cycle in Area hierarchy")
 		}
 		switch a.SplitDirection {
 		case SplitHorizontal:
@@ -701,7 +705,7 @@ func (a *Area) PerformAsChildren(operation func(AreaHandler), editor EditorAreaI
 	}
 	if a.ChildA != nil && a.ChildB != nil {
 		if a.ChildA == a || a.ChildB == a {
-			panic("Cycle in Area hierarchy")
+			panic("cycle in Area hierarchy")
 		}
 		a.ChildA.PerformAsChildren(operation, editor)
 		a.ChildB.PerformAsChildren(operation, editor)

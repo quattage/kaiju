@@ -31,10 +31,11 @@ import (
 	"kaijuengine.com/rendering/textures"
 
 	// we import the default areas so that their initializers are hit
+	_ "kaijuengine.com/editor/editor_areas/defaults/content_browser"
 	_ "kaijuengine.com/editor/editor_areas/defaults/fallback"
-	_ "kaijuengine.com/editor/editor_areas/defaults/primary"
+	_ "kaijuengine.com/editor/editor_areas/defaults/loading_screen"
 	"kaijuengine.com/editor/editor_areas/defaults/splash_screen"
-	_ "kaijuengine.com/editor/editor_areas/defaults/throbber"
+	_ "kaijuengine.com/editor/editor_areas/defaults/stage_viewport"
 )
 
 // Editor is the entry point structure for the entire editor. It acts as the

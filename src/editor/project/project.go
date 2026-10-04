@@ -54,7 +54,7 @@ type Project struct {
 	fileSystem          project_file_system.FileSystem
 	cacheDatabase       content_database.Cache
 	Settings            Settings
-	SessionRestore      WorkspaceSession
+	Session             Session
 	entityData          []codegen.GeneratedType
 	entityDataMap       map[string]*codegen.GeneratedType
 	contentSerializers  map[string]func(content_archive.FileReader, []byte) ([]byte, error)
@@ -131,7 +131,7 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 func (p *Project) Close() error {
 	defer tracing.NewRegion("Project.Close").End()
 	errA := p.Settings.Save(&p.fileSystem)
-	errB := p.SessionRestore.Save(&p.fileSystem)
+	errB := p.Session.Save(&p.fileSystem)
 	if errA != nil && errB != nil {
 		return errors.Join(errA, errB)
 	} else if errA != nil {
@@ -181,6 +181,10 @@ func (p *Project) commonInit() {
 // Name will return the name that has been set for this project. If the name is
 // not set, either the project hasn't been setup/selected or it is an error.
 func (p *Project) Name() string { return p.Settings.Name }
+
+func (p *Project) Path() string {
+	return p.fileSystem.FullPath("")
+}
 
 // SetName will update the name of the project and save the project config file.
 // When the name is successfully set, the [OnNameChange] func will be called.

@@ -97,8 +97,8 @@ func (ed *Editor) openProject(path string) {
 
 func (ed *Editor) finalizeProjectLoad(projectName string) {
 	defer tracing.NewRegion("Editor.finalizeProjectLoad").End()
-	ed.host.Window.SetTitle(fmt.Sprintf("%s - Kaiju Engine Editor", projectName))
 	ed.project.SetName(projectName)
+	ed.host.Window.SetTitle(fmt.Sprintf("%s [%s] - Kaiju Editor v%v", ed.project.Name(), ed.project.Path(), versions.Editor))
 	ed.settings.AddRecentProject(ed.project.FileSystem().FullPath(""))
 	slog.Info("Compiling the project to get things ready...")
 	{

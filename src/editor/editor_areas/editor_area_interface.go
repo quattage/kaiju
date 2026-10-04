@@ -63,11 +63,6 @@ type EditorAreaInterface interface {
 	// Area-owned.
 	ShowReferences(id string)
 
-	// SwitchToWorkspace reconfigures the Area stack to match
-	// what's described by the WorkspaceConfiguration mapped to the
-	// provided string ID, if one exists.
-	SwitchToWorkspace(id string)
-
 	// SetMinimumWindoWSize ensures that the window cannot be smaller
 	// than the provided width and height. This method is called by the editor
 	// on startup to ensure that the editor window can't be resized in a way

@@ -6,7 +6,9 @@
 
 package fallback
 
-import "kaijuengine.com/editor/editor_areas"
+import (
+	"kaijuengine.com/editor/editor_areas"
+)
 
 // A non-exhaustive list of things that could go wrong with retrieving an Area:
 // - Bad SessionRestore JSON syntax/names
@@ -48,7 +50,6 @@ func (h *Handler) Open(area *editor_areas.Area, editor editor_areas.EditorAreaIn
 }
 
 func (h *Handler) Close(area *editor_areas.Area, editor editor_areas.EditorAreaInterface) {
-	area.TakedownLayout()
 }
 
 func (h *Handler) FocusInterface(editor editor_areas.EditorAreaInterface) {

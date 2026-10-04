@@ -7,16 +7,14 @@
 package throbber
 
 import (
-	"log/slog"
-
 	"kaijuengine.com/editor/editor_areas"
 )
 
 func init() {
 	editor_areas.Register(func() editor_areas.AreaType {
 		return editor_areas.AreaType{
-			ID:             "com.kaiju.area_throbber",
-			Name:           "Editor Loading Throbber",
+			ID:             "com.kaiju.area_loading_screen",
+			Name:           "Editor Loading Screen",
 			Flags:          editor_areas.AreaCapabilityFlagOverlayable,
 			HandlerFactory: func() editor_areas.AreaHandler { return &Handler{} },
 		}
@@ -27,7 +25,6 @@ type Handler struct {
 }
 
 func (h *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
-	slog.Info("" + area.String())
 	bkg := area.EmptyContainer(ed)
 	bkg.AnnotateBottomLeft(ed, "Loading...")
 }

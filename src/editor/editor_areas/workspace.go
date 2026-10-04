@@ -17,7 +17,6 @@ import (
 
 type WorkspaceManager struct {
 	editor          EditorAreaInterface
-	workspaces      map[string]WorkspaceConfiguration
 	activeWorkspace string
 	areaTypes       map[string]func() AreaType
 	MainArea        *Area
@@ -25,7 +24,6 @@ type WorkspaceManager struct {
 	StageView       editor_stage_view.StageView
 }
 
-// Initialize performs the first-time
 func (wm *WorkspaceManager) Initialize(ed EditorAreaInterface) *Area {
 	wm.editor = ed
 	wm.activeWorkspace = ""
@@ -36,14 +34,12 @@ func (wm *WorkspaceManager) Initialize(ed EditorAreaInterface) *Area {
 		return float64(ed.Settings().UIScale)
 	}
 	wm.Refresh(ed)
-	_, err := wm.Open("com.kaiju.area_primary", nil, SplitHorizontal, -1)
-	if err != nil {
-		panic("Failed to open primary area! - " + err.Error())
-	}
 	area, err := wm.OpenOverlay("com.kaiju.area_splash_screen", -1, -1)
 	if err != nil {
 		panic("Failed to open splash screen! - " + err.Error())
 	}
+	wm.Update(0)
+	wm.constructDefaultWorkspace()
 	return area
 }
 
@@ -67,7 +63,7 @@ func (wm *WorkspaceManager) Editor() EditorAreaInterface {
 // panel.
 func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Area, error) {
 	if len(wm.areaTypes) <= 0 {
-		panic("Attempted to modify workspace before it finished loading")
+		panic("Attempted to modify workspace before initialization")
 	}
 	areaToOpen := wm.GetAreaType(areaID)
 	if areaToOpen == nil {
@@ -96,7 +92,7 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 	} else {
 		posy = max(0, min(posy, maxH-wy))
 	}
-	newArea.openWithSize(wm, wx, wy, wm.editor.Theme().SizeRadiusGlobal)
+	newArea.openWithSize(wm, wx, wy)
 	newArea.Panel.Base().Layout().SetOffset(posx, posy)
 	newArea.Panel.Base().Layout().SetZ(9)
 	newArea.OverlayPX = (posx + wx*0.5) / maxW
@@ -110,7 +106,7 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 // The position of this window is calculated based on nesting.
 func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction SplitDirection, ratio float32) (*Area, error) {
 	if len(wm.areaTypes) <= 0 {
-		panic("Attempted to modify workspace before it finished loading")
+		panic("Attempted to modify workspace before initialization")
 	}
 	areaToOpen := wm.GetAreaType(areaID)
 	if areaToOpen == nil {
@@ -120,29 +116,22 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 		if wm.MainArea == nil {
 			wm.MainArea = newBlankArea(areaToOpen)
 			slog.Info(fmt.Sprintf("Populated MainArea with %s", areaToOpen))
-			wm.MainArea.openWithSize(wm, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()), 0)
+			wm.MainArea.openWithSize(wm, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()))
 			return wm.MainArea, nil
 		}
 		parentArea = wm.MainArea
+	} else {
+		if parentArea.Type.ID == AreaTypeComposite.ID {
+			panic("invalid composite open request")
+		}
+		if wm.MainArea == nil {
+			panic("no fallback parent available")
+		}
 	}
 	if areaToOpen.Flags&AreaCapabilityFlagDockable == 0 {
 		return nil, fmt.Errorf("%s isn't dockable!", areaToOpen)
 	}
-	if parentArea.Type.ID == AreaTypeComposite.ID {
-		// under normal circumstances, this shouldn't be hit.
-		// the recursive call here does mean that the area is looked up redundantly
-		// but since this should be pretty rare it's probably fine. This will only
-		// ever be an issue for areas that are nested very deeply.
-		if parentArea.ChildA != nil {
-			wm.Open(areaID, parentArea.ChildA, direction, ratio)
-		} else if parentArea.ChildB != nil {
-			wm.Open(areaID, parentArea.ChildB, direction, ratio)
-		} else {
-			return nil, fmt.Errorf("%s couldn't be parented - The target parent %s is a composite, but has no children! This indicates that the workspace area tree has been invalidated!", areaToOpen, parentArea)
-		}
-		return nil, nil
-	}
-	areaCopy := parentArea
+	areaCopy := *parentArea
 	areaCopy.owner = parentArea
 	areaCopy.SplitDirection = SplitHorizontal
 	areaCopy.Ratio = -1
@@ -157,7 +146,7 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 	// the stacking order of the splits uses the sign of the ratio
 	mar := wm.editor.Theme().SizeAreaMinimum
 	if ratio <= 0 {
-		parentArea.ChildA = areaCopy
+		parentArea.ChildA = &areaCopy
 		parentArea.ChildB = newArea
 		if ratio < -(1 - mar) {
 			parentArea.Ratio = 1 - mar
@@ -168,7 +157,7 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 		}
 	} else {
 		parentArea.ChildA = newArea
-		parentArea.ChildB = areaCopy
+		parentArea.ChildB = &areaCopy
 		if ratio > 1-mar {
 			parentArea.Ratio = 1 - mar
 		} else if ratio < mar {
@@ -256,17 +245,14 @@ func (wm *WorkspaceManager) Update(deltaTime float64) {
 	}
 }
 
-// GetWorkspace returns the WorkspaceConfiguration mapped to the provided string
-// ID, should one exist. Returns nil otherwise.
-func (wm *WorkspaceManager) GetWorkspace(id string) *WorkspaceConfiguration {
-	if len(id) <= 0 {
-		return nil
-	}
-	config, ok := wm.workspaces[id]
-	if !ok {
-		return nil
-	}
-	return &config
+func (wm *WorkspaceManager) Serialize(ed EditorAreaInterface) {
+
+}
+
+func (wm *WorkspaceManager) constructDefaultWorkspace() {
+	wm.Open("com.kaiju.area_stage_viewport", nil, SplitHorizontal, 0.5)
+	p, _ := wm.Open("com.kaiju.area_content_browser", nil, SplitVertical, -0.5)
+	wm.Open("com.kaiju.area_fallback", p, SplitHorizontal, 0.25)
 }
 
 // GetAreaType returns the AreaType mapped to the provide string ID, should one
@@ -281,27 +267,6 @@ func (wm *WorkspaceManager) GetAreaType(id string) *AreaType {
 	}
 	output := areaType()
 	return &output
-}
-
-// SwitchToWorkspace performs lifecycle operations necessary to transfer the
-// current configuration of Areas to the one described by the
-// WorkspaceConfiguration mapped to the provided ID. It is primarily intended
-// to be called by [EditorAreaInterface.SwitchToWorkspace]. Avoid calling this directly
-// if you can call it from the interface.
-func (wm *WorkspaceManager) SwitchToWorkspace(id string) {
-	if len(id) <= 0 {
-		return
-	}
-	if wm.MainArea != nil && len(wm.activeWorkspace) <= 0 {
-		wm.Close(wm.MainArea)
-	}
-	config := wm.GetWorkspace(id)
-	if config == nil {
-		slog.Error(fmt.Sprintf("Couldn't switch to workspace '%s' - No configuration at this index exists!", id))
-		return
-	}
-	wm.activeWorkspace = id
-	wm.LoadWorkspace(config)
 }
 
 // finalizeATRegistry adds all deferred AreaType registry entries to the

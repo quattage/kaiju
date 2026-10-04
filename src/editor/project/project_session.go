@@ -14,12 +14,27 @@ import (
 	"kaijuengine.com/platform/profiler/tracing"
 )
 
-type WorkspaceSession struct {
-	LastModified time.Time `visible:"false"`
+type WorkspaceConfiguration struct {
+	ID   string
+	Name string
+	tree []branch
 }
 
-func (ws *WorkspaceSession) Save(fs *project_file_system.FileSystem) error {
-	// walk the worksapce stack and serialize tne binary tree and all Area settings
+type branch struct {
+	a        int16
+	b        int16
+	ratio    float32
+	dir      uint8
+	areaType string
+}
+
+type Session struct {
+	LastModified      time.Time `visible:"false"`
+	selectedWorkspace uint16
+	workspaces        []WorkspaceConfiguration
+}
+
+func (ws *Session) Save(fs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("Settings.Save").End()
 	f, err := fs.Create(project_file_system.SessionRestoreFile)
 	if err != nil {
@@ -28,7 +43,7 @@ func (ws *WorkspaceSession) Save(fs *project_file_system.FileSystem) error {
 	return json.NewEncoder(f).Encode(*ws)
 }
 
-func (ws *WorkspaceSession) load(fs *project_file_system.FileSystem) error {
+func (ws *Session) load(fs *project_file_system.FileSystem) error {
 	defer tracing.NewRegion("Settings.load").End()
 	f, err := fs.Open(project_file_system.SessionRestoreFile)
 	if err != nil {
@@ -40,6 +55,5 @@ func (ws *WorkspaceSession) load(fs *project_file_system.FileSystem) error {
 	}
 	ws.LastModified = time.Now()
 
-	// TODO address any mismatches and repair broken Area states individually
 	return ws.Save(fs)
 }

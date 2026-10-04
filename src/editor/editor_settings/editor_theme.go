@@ -48,10 +48,11 @@ type WorkspaceTheme struct {
 	ColorTextActive    matrix.Color
 	ColorAccentPassive matrix.Color
 	ColorAccentActive  matrix.Color
-	SizeAreaMinimum    float32 `default:"0.1" visible:"false"`
+	SizeAreaMinimum    float32
 	SizeContextBar     float32
 	SizeTextGlobal     float32
 	SizeRadiusGlobal   float32
+	SizeTrenchGlobal   float32
 }
 
 func (wt *WorkspaceTheme) setDefaults() {
@@ -66,6 +67,7 @@ func (wt *WorkspaceTheme) setDefaults() {
 	wt.SizeContextBar = 24
 	wt.SizeTextGlobal = 12
 	wt.SizeRadiusGlobal = 8
+	wt.SizeTrenchGlobal = 4
 }
 
 // MarkThemeCSSDirty discards the current theme style sheet so that it can be

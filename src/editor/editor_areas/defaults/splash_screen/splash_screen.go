@@ -48,7 +48,7 @@ type Handler struct {
 
 type RecentProject struct {
 	project.Settings
-	project.WorkspaceSession
+	project.Session
 	Path     string
 	Modified string
 	Time     string
@@ -57,6 +57,7 @@ type RecentProject struct {
 func (h *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
 	h.lockout = false
 	h.RefreshRecents(ed.Settings().RecentProjects)
+	area.SetBackdropColor(ed.Theme().ColorPanel)
 	area.SetMinimunWindowSize(ed)
 	bkg := area.BackgroundImage(ed, "kaiju-splash.png", 1)
 	bkg.TopShadow(ed, 0.8, 0.7)

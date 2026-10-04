@@ -41,10 +41,6 @@ func (h *Handler) BlurInterface(editor editor_areas.EditorAreaInterface) {
 func (h *Handler) Update(area *editor_areas.Area, editor editor_areas.EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
 }
 
-func (h *Handler) GetOffsets(ed editor_areas.EditorAreaInterface) (float32, float32, float32, float32) {
-	return 0, 0, 0, 0
-}
-
 func (h *Handler) GetOverlayDimensions() (float32, float32) {
 	return -1, -1
 }

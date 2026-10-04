@@ -76,7 +76,3 @@ func (ed *Editor) FocusInterface() {
 func (ed *Editor) ShowReferences(id string) {
 	panic("unimpl")
 }
-
-func (ed *Editor) SwitchToWorkspace(id string) {
-	ed.UIWorkspace().SwitchToWorkspace(id)
-}
