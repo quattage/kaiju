@@ -43,7 +43,7 @@ func CreateNewProjectFromCLI(path string) {
 
 func (ed *Editor) createProject(name, path, templatePath string) {
 	slog.Info("Creating new project...")
-	ed.UIWorkspace().CloseOverlay("com.kaiju.area_splash_screen")
+	ed.UIWorkspace().CloseOverlayByID("com.kaiju.area_splash_screen")
 	ed.UIWorkspace().OpenOverlay("com.kaiju.area_throbber", -1, -1)
 	// goroutine
 	go func() {
@@ -61,7 +61,7 @@ func (ed *Editor) createProject(name, path, templatePath string) {
 
 func (ed *Editor) openProject(path string) {
 	slog.Info("Opening project...")
-	ed.UIWorkspace().CloseOverlay("com.kaiju.area_splash_screen")
+	ed.UIWorkspace().CloseOverlayByID("com.kaiju.area_splash_screen")
 	ed.UIWorkspace().OpenOverlay("com.kaiju.area_throbber", -1, -1)
 	// goroutine
 	go func() {
@@ -129,6 +129,6 @@ func (ed *Editor) finalizeProjectLoad(projectName string) {
 		}
 		ed.plugins = append(ed.plugins, v)
 	}
-	ed.UIWorkspace().CloseOverlay("com.kaiju.area_throbber")
+	ed.UIWorkspace().CloseOverlayByID("com.kaiju.area_throbber")
 	slog.Info("Project load complete!")
 }

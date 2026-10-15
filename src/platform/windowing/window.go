@@ -551,8 +551,8 @@ func (w *Window) requestSync() {
 func (w *Window) canChangeCursor() bool { return w.cursorChangeCount == 0 }
 
 func (w *Window) processWindowResizeEvent(evt *WindowResizeEvent) {
-	w.width = int(evt.width)
-	w.height = int(evt.height)
+	w.width = max(w.minWidth, int(evt.width))
+	w.height = max(w.minHeight, int(evt.height))
 	w.left = int(evt.left)
 	w.top = int(evt.top)
 	w.right = int(evt.right)

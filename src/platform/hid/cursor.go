@@ -93,3 +93,7 @@ func (c *Cursor) Position() matrix.Vec2 {
 		return c.mouse.Position()
 	}
 }
+
+func (c *Cursor) Delta() matrix.Vec2 {
+	return c.lastPos.Subtract(c.pos)
+}

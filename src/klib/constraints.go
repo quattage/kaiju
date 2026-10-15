@@ -64,3 +64,12 @@ func ClampAbs[T Signed](value, minimum T) T {
 func FAbs(x float32) float32 {
 	return math.Float32frombits(math.Float32bits(x) &^ fsignMask)
 }
+
+func FClamp(x, min, max float32) float32 {
+	if x < min {
+		return min
+	} else if x > max {
+		return max
+	}
+	return x
+}

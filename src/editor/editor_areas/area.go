@@ -9,8 +9,8 @@ package editor_areas
 import (
 	"fmt"
 	"log/slog"
+	"math"
 	"reflect"
-	"regexp"
 	"weak"
 
 	"golang.org/x/net/html"
@@ -20,15 +20,24 @@ import (
 	"kaijuengine.com/engine/ui/markup/document"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
+	"kaijuengine.com/rendering"
 	"kaijuengine.com/rendering/textures"
 )
 
 type SplitDirection uint8
-type AreaCapabilityFlags = int
+type AreaCapabilityFlags int
 type DiscreteFieldRowAlignment uint8
 
+// The smallest that an Area is allowed to be (unit is effectively millimeters
+// in the smallest dimension, so width and height)
+const minFunctionalWidth = 16
+
 const (
-	SplitHorizontal SplitDirection = iota
+	// Used to indicate invalid state
+	SplitNone SplitDirection = iota
+	// Areas will be aligned side-by-side
+	SplitHorizontal
+	// Areas will be stacked on top of each other
 	SplitVertical
 )
 
@@ -40,9 +49,9 @@ const (
 
 const (
 	// Dockable AreaTypes can be dropped into the primary Area hierarchy
-	// and tiled by the workspcae manager. Most Areas should be dockable, but
+	// and tiled by the workspace manager. Most Areas should be dockable, but
 	// some may not desire this. (For example, the splash screen isn't dockable)
-	AreaCapabilityFlagDockable = (1 << iota)
+	AreaCapabilityFlagDockable AreaCapabilityFlags = 1 << iota
 	// Overlayable AreaTypes are permitted to float above the layout.
 	// Various context menus including the color picker are overlayable.
 	AreaCapabilityFlagOverlayable
@@ -60,14 +69,7 @@ const (
 
 type BottomRightStylizer struct{ ui.BasicStylizer }
 type BottomLeftStylizer struct{ ui.BasicStylizer }
-
-// A Container is a helper struct that makes laying out elements in code
-// easier
-type Container struct {
-	owner *Area
-	Panel *ui.Panel
-	doc   *document.Document
-}
+type CenterStylizer struct{ ui.BasicStylizer }
 
 type ContextBarElement struct {
 	owner  *Area
@@ -75,40 +77,14 @@ type ContextBarElement struct {
 	Panel  *ui.Panel
 }
 
-// The AreaType is a registry construct that exists to convey implementation
-// specifics to the Area itself. Each discrete Area type
-// (such as the Stage viewport, shader editor, render graph, etc.)
-// will exist as an AreaType.
-type AreaType struct {
-	ID             string
-	Name           string
-	Flags          AreaCapabilityFlags
-	HandlerFactory func() AreaHandler
+// A hitbox used for cursor interactions for resizing Areas
+type Gutter struct {
+	composite                       *Area
+	posx, posy, width, height, dist float32
+	grabbed                         bool
 }
 
-func (at *AreaType) String() string {
-	return at.ID
-}
-
-// The Area is the fundamental core of what Kaiju presents to the end user.
-type Area struct {
-	Container
-	Type            AreaType
-	manager         *ui.Manager
-	internalHandler AreaHandler
-	ChildA          *Area
-	ChildB          *Area
-	SplitDirection  SplitDirection
-	Ratio           float32
-	OverlayPX       float32
-	OverlayPY       float32
-}
-
-func (a *Area) String() string {
-	return a.Type.String()
-}
-
-type AreaHandler interface {
+type AreaHandlerInterface interface {
 	Open(area *Area, editor EditorAreaInterface)
 	Close(area *Area, editor EditorAreaInterface)
 	FocusInterface(editor EditorAreaInterface)
@@ -117,131 +93,215 @@ type AreaHandler interface {
 	// GetOverlayDimensions returns the size [width, height] that this Area
 	// assumes by default when opened as an overlay.
 	GetOverlayDimensions() (float32, float32)
-	IsFocusedOnInput() bool
 }
 
-// AreaTypeComposite is a dedicated, default, registry-specific
-// AreaType that exists solely to represent Areas that defer their
-// functionality to their children. The AreaTypeComposite's handler
-// is, by default, nil. The hierarchy of Areas is walked recursively
-// The handler here could *potentially* be assigned by a plugin to
-// essentially override the recursive Area walking operations performed
-// by the functions at the bottom of this file.
-// Should such a thing be desirable for whatever reason, this would
-// theoretically allow plugins to fundamentally alter the layout behaviour
-// of Areas.
-var AreaTypeComposite = AreaType{
-	ID:             "com.kaiju.area_composite",
-	Name:           "Composite",
-	HandlerFactory: nil,
-	Flags:          0,
+// The AreaType is a registry construct that exists to convey implementation
+// specifics to the Area itself. Each discrete Area type
+// (such as the Stage viewport, shader editoGr, render graph, etc.)
+// will exist as an AreaType.
+type AreaType struct {
+	Key            klib.RegistryKey
+	HandlerFactory func() AreaHandlerInterface
+	Flags          AreaCapabilityFlags
 }
 
-var deferredAreaTypeRegistry = []func() AreaType{}
-var regex = regexp.MustCompile(`^[a-z_.]+$`)
+func (at AreaType) GetRegistryKey() klib.RegistryKey {
+	return at.Key
+}
 
-// Register allows packages to append their own AreaType factories during
-// static initialization.
-func Register(areaType func() AreaType) {
-	if deferredAreaTypeRegistry == nil {
-		slog.Error("Skipped attempt to register an AreaType factory after the registry has closed.")
-		return
+func (at *AreaType) String() string {
+	return at.Key.String()
+}
+
+type Container struct {
+	owner *Area
+	// This Panel is managed by the Container and its helpers. It shouldn't be
+	// reassigned or reparented.
+	Panel *ui.Panel
+	doc   *document.Document
+}
+
+// The Area is the fundamental core of what Kaiju presents to the end user.
+type Area struct {
+	Container
+	areaType        *AreaType
+	manager         *ui.Manager
+	childA          *Area
+	childB          *Area
+	internalHandler AreaHandlerInterface
+	splitDirection  SplitDirection
+	ratio           float32
+	overlayPX       float32
+	overlayPY       float32
+	focused         bool
+	rect            AreaRect
+}
+
+func (a *Area) String() string {
+	return a.areaType.String()
+}
+
+// Returns true if this Area's backing type matches the provided AreaType.
+func (a *Area) Is(at *AreaType) bool {
+	return a.areaType == at
+}
+
+// Returns true if this Area's internal handler is the same instance as the
+// provided interface. This is useful
+func (a *Area) IsFocused() bool {
+	return a.IsFunctional() && a.focused
+}
+
+// Returns true if this Area is composite. Composite Areas' sole responsibility
+// is to hold exactly two child Areas. Composite areas have no UI of their own
+// and propagate state updates/reads to their children.
+func (a *Area) IsComposite() bool {
+	return a.areaType == nil && a.childA != nil && a.childB != nil
+}
+
+// Returns true if this Area is functional. Functional Areas are responsible for
+// presenting UI to the user.
+func (a *Area) IsFunctional() bool {
+	return a.areaType != nil && a.childA == nil && a.childB == nil && a.manager != nil && a.Panel != nil
+}
+
+// Returns true if this Area is the MainArea, that is, it is the top-level
+// composite currently being managed by the workspace
+func (a *Area) IsMain(wm *WorkspaceManager) bool {
+	return a.owner == nil && a == wm.main
+}
+
+// An overlay floats above the contents of the Area system. It has no owner
+// or children and describes its location as an absolute position rather than
+// existing within the hierarchy.
+func (a *Area) IsOverlay() bool {
+	return a.owner == nil && a.overlayPX > -1 && a.overlayPY > -1
+}
+
+func (a *Area) Host() *engine.Host {
+	if a.manager == nil {
+		return nil
 	}
-	deferredAreaTypeRegistry = append(deferredAreaTypeRegistry, areaType)
+	return a.manager.Host
+}
+
+func (a *Area) Enable() {
+	a.SetEnabled(true)
+}
+
+func (a *Area) Disable() {
+	a.SetEnabled(false)
+}
+
+func (a *Area) SetEnabled(enabled bool) {
+	if a.Panel != nil {
+		a.Panel.Base().Entity().SetActive(enabled)
+	}
+}
+
+func (a *Area) GetOwner() *Area {
+	return a.owner
+}
+
+// Returns the SplitDirection (Horizontal or Vertical) for this Area.
+func (a *Area) GetSplitDirection() SplitDirection {
+	if a.splitDirection != SplitNone {
+		return a.splitDirection
+	}
+	if a.owner != nil {
+		return a.owner.GetSplitDirection()
+	}
+	return SplitNone
+}
+
+// GetHandler is internally (and can be called by editor or plugin code) to
+// return the interhal Handler instance owned by this Area. This instance is
+// provided initially by the AreaType's factory. The first call to this method
+// will create the handler, and subsequent calls will return it. The handler
+// should not be invalidated throughout this Area's lifespan - the Area will do
+// that automatically when it is closed.
+func (a *Area) GetHandler() AreaHandlerInterface {
+	if a.internalHandler != nil {
+		return a.internalHandler
+	}
+	if a.areaType.HandlerFactory != nil {
+		a.internalHandler = a.areaType.HandlerFactory()
+		if a.internalHandler == nil {
+			panic(fmt.Sprintf("handler factory for '%s' produced a nil result", a.areaType))
+		}
+		return a.internalHandler
+	}
+	panic("handler requested for non-presented area")
+}
+
+// Aquire the lazy-loaded AreaHandlerInterface instance from this Area. This
+// can be useful if you need the actual typed instance for handler-specific
+// data access. If this area's handler can't be acquired or cast, this method
+// will panic.
+func (a *Area) GetHandlerAs[T AreaHandlerInterface]() T {
+	if handler, ok := a.GetHandler().(T); ok {
+		return handler
+	}
+	panic(fmt.Sprintf(
+		"failed getting area handler - '%s' cannot conform to type '%s'",
+		reflect.TypeOf(a.internalHandler),
+		reflect.TypeFor[T](),
+	))
 }
 
 func newBlankArea(areaType *AreaType) *Area {
-	return &Area{
-		Type:           *areaType,
-		owner:          nil,
-		ChildA:         nil,
-		ChildB:         nil,
-		SplitDirection: SplitHorizontal,
-		Ratio:          -1,
-		OverlayPX:      -1,
-		OverlayPY:      -1,
+	if areaType == nil {
+		panic("nil areatype for new blank area")
 	}
+	output := &Area{}
+	output.resetFields()
+	output.areaType = areaType
+	return output
 }
 
-// Called by the workspace manager and serializer to set up this Area's
-// manager and panel
-func (a *Area) open(wm *WorkspaceManager) {
-	a.openWithSize(wm, 10, 10)
-}
-
-func (a *Area) openWithSize(wm *WorkspaceManager, width, height float32) {
+func (a *Area) open(wm *WorkspaceManager, width, height float32) {
 	a.manager = &ui.Manager{}
 	a.manager.Init(wm.editor.Host())
 	a.Panel = a.manager.Add().ToPanel()
 	a.Panel.Init(nil, ui.ElementTypePanel)
-	a.SetBackdropColor(wm.editor.Theme().ColorBackground)
+	a.SetBackdropColor(wm.editor.Theme().ColorPanel)
 	a.Panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	a.Panel.Base().Layout().SetOffset(0, 0)
 	a.Panel.Base().Layout().Scale(float32(width), float32(height))
 	a.Panel.DontFitContent()
 	rad := wm.Editor().Theme().SizeRadiusGlobal
 	a.Panel.SetBorderRadius(rad, rad, rad, rad)
+	a.Unhighlight(wm.editor)
 	a.GetHandler().Open(a, wm.editor)
 	a.Panel.Base().SetDirty(ui.DirtyTypeGenerated)
-	slog.Debug(fmt.Sprintf("Opened '%s'", a.Type.ID))
 }
 
-func (a *Area) close(wm *WorkspaceManager) {
-	a.GetHandler().Close(a, wm.editor)
-	a.manager.Shutdown()
-	a.Type = AreaType{
-		ID:             "NIL_CLOSED",
-		Name:           "NIL_CLOSED",
-		HandlerFactory: nil,
-		Flags:          0,
+func (a *Area) closeAndInvalidate(ed EditorAreaInterface) {
+	a.GetHandler().Close(a, ed)
+	if a.manager != nil {
+		a.manager.Shutdown()
 	}
+	a.resetFields()
+}
+
+func (a *Area) resetFields() {
+	a.areaType = nil
 	a.manager = nil
 	a.Panel = nil
 	a.owner = nil
-	a.ChildA = nil
-	a.ChildB = nil
-	a.SplitDirection = SplitHorizontal
-	a.Ratio = -1
-	a.OverlayPX = -1
-	a.OverlayPY = -1
+	a.childA = nil
+	a.childB = nil
+	a.splitDirection = SplitHorizontal
+	a.ratio = -1
+	a.overlayPX = -1
+	a.overlayPY = -1
+	a.focused = false
+	a.rect = AreaRect{-1, -1, -1, -1}
 }
 
-// GetHandler is internally (and can be called by editor or plugin code)
-// to return the interhal Handler instance owned by this Area. This instance
-// is provided initially by the AreaType's factory. The first call to this
-// method will create the handler, and subsequent calls will return it.
-// The handler should not be invalidated throughout this Area's lifespan - the
-// Area will do that automatically when it is closed.
-func (a *Area) GetHandler() AreaHandler {
-	if a.internalHandler != nil {
-		return a.internalHandler
-	}
-	if a.Type.HandlerFactory != nil {
-		a.internalHandler = a.Type.HandlerFactory()
-		return a.internalHandler
-	}
-	panic("Handler requested for non-presented area")
-}
-
-// GetConformedHandler is a mirrored implementation of [Area.GetHandler] that
-// allows API users to supply their handler conformed to the provided generic
-// type. If this cast cannot occur, this method call will panic.
-// The Area's AreaType & Handler pattern is interface-based, so this
-// method is the only (safe) way to directly refer to Area Handlers by their
-// type after registry. By extension, it is the only way to access and/or modify
-// handler-specific data directly. Editor code uses this to update the recent
-// projects list in the Splash Screen, and to populate UI options in the common
-// Context Menu.
-func (a *Area) GetConformedHandler[T AreaHandler]() T {
-	if handler, ok := a.GetHandler().(T); ok {
-		return handler
-	}
-	panic(fmt.Sprintf(
-		"Failed getting handler - '%s' cannot conform to type '%s'",
-		reflect.TypeOf(a.internalHandler),
-		reflect.TypeFor[T](),
-	))
-}
+// The rest of the file contains layout helpers for building basic UI elements
+// by describing them in Go code rather than with HTML/CSS. All the stuff here
+// is styled automatically using the editor theme.
 
 // StretchFlexColumn configures this Area's root panel to be a flex column with
 // stretch alignment. This makes menu & status bar alignment an emergent
@@ -270,7 +330,7 @@ func (a *Area) MakeDocumentRoot() *document.Element {
 	a.Panel.AddChild(docRoot.Base())
 	return &document.Element{
 		Type:     html.ElementNode,
-		Data:     a.Type.ID + ".root",
+		Data:     a.areaType.Key.ID() + ".root",
 		UI:       docRoot.Base(),
 		UIPanel:  docRoot,
 		Children: make([]*document.Element, 0),
@@ -395,7 +455,7 @@ func (a *Area) applyDocument(root *ui.Panel, doc *document.Document) *Container 
 	if doc == nil || len(doc.Elements) == 0 {
 		slog.Error(fmt.Sprintf(
 			"Couldn't apply HTML document for '%s': no elements",
-			a.Type.String(),
+			a.areaType.String(),
 		))
 		return &Container{
 			owner: a,
@@ -541,11 +601,23 @@ func (c *Container) AnnotateBottomRight(ed EditorAreaInterface, text string) *ui
 	return bg
 }
 
+func (a *Area) AnnotateCenter(ed EditorAreaInterface, text string) {
+	content := a.manager.Add().ToLabel()
+	content.Init(text)
+	content.SetFontSize(ed.Theme().SizeTextGlobal * 2)
+	content.SetFontFace(rendering.FontBold)
+	content.SetColor(ed.Theme().ColorTextPassive)
+	a.Panel.AddChild(content.Base())
+	content.Base().Layout().SetZ(a.Panel.Base().Layout().Z() + 0.1)
+	content.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	content.Base().Layout().Stylizer = CenterStylizer{Parent: weak.Make(a.Panel.Base())}
+}
+
 // Creates a transparent-to-black overlay gradient whose darkest band is aligned
 // with the top of this container. This overlay is configured to respect the
 // styles of the underlying panel and conform to it without affecting the layout
 // of its children.
-func (c *Container) TopShadow(editor EditorAreaInterface, darkness, ratio float32) *ui.Panel {
+func (c *Container) TopFade(editor EditorAreaInterface, darkness, ratio float32) *ui.Panel {
 	ps := c.Panel.Base().Layout().PixelSize()
 	overlay := imagePanel(c.Panel, c.owner.manager, editor, "gradient.png", 1, true)
 	overlay.SetColor(matrix.ColorBlack().WithAlpha(darkness))
@@ -563,7 +635,7 @@ func (c *Container) TopShadow(editor EditorAreaInterface, darkness, ratio float3
 // with the bottom of this container. This overlay is configured to respect the
 // styles of the underlying panel and conform to it without affecting the layout
 // of its children.
-func (c *Container) BottomShadow(editor EditorAreaInterface, darkness, ratio float32) *ui.Panel {
+func (c *Container) BottomFade(editor EditorAreaInterface, darkness, ratio float32) *ui.Panel {
 	ps := c.Panel.Base().Layout().PixelSize()
 	overlay := imagePanel(c.Panel, c.owner.manager, editor, "gradient.png", 1, true)
 	overlay.SetColor(matrix.ColorBlack().WithAlpha(darkness))
@@ -576,30 +648,25 @@ func (c *Container) BottomShadow(editor EditorAreaInterface, darkness, ratio flo
 	return overlay
 }
 
-// SetMinimumWindowSize ensures that the editor window cannot be resized to
-// be smaller than this Area's dimensions. This only really works if the Area
-// is constrained to the center of the Editor in some way.
-func (a *Area) SetMinimunWindowSize(ed EditorAreaInterface) {
-	ed.SetMinimumWindowSize(int(a.Width()*1.1), int(a.Height()*1.1))
-}
-
-func (a *Area) Width() float32 {
-	if a.Panel == nil {
-		return 0
-	}
-	return a.Panel.Base().Entity().Transform.Scale().X()
-}
-
-func (a *Area) Height() float32 {
-	if a.Panel == nil {
-		return 0
-	}
-	return a.Panel.Base().Entity().Transform.Scale().Y()
-}
-
 func (a *Area) SetBackdropColor(color matrix.Color) {
 	a.assertInitialized()
 	a.Panel.SetColor(color)
+}
+
+func (a *Area) Highlight(ed EditorAreaInterface) {
+	a.assertInitialized()
+	col := matrix.ColorMix(ed.Theme().ColorPanel, matrix.ColorWhite(), 0.07)
+	a.Panel.SetBorderColor(col, col, col, col)
+	size := float32(math.Max(2, math.Ceil(float64(ed.Theme().SizeTrenchGlobal*0.25))))
+	a.Panel.SetBorderSize(size, size, size, size)
+}
+
+func (a *Area) Unhighlight(ed EditorAreaInterface) {
+	a.assertInitialized()
+	col := matrix.ColorMix(ed.Theme().ColorPanel, matrix.ColorWhite(), 0.04)
+	a.Panel.SetBorderColor(col, col, col, col)
+	size := float32(math.Max(2, math.Ceil(float64(ed.Theme().SizeTrenchGlobal*0.25))))
+	a.Panel.SetBorderSize(size, size, size, size)
 }
 
 func (a *Area) BackdropColor() matrix.Color {
@@ -612,103 +679,9 @@ func (a *Area) SetOutlineColor(color matrix.Color) {
 	a.Panel.SetOutline(2, 0, color)
 }
 
-func (a *Area) TopLeftCorner() matrix.Vec2 {
-	return a.Panel.Base().Layout().PixelPosition()
-}
-
-func (a *Area) TopRightCorner() matrix.Vec2 {
-	return a.TopLeftCorner().Add(matrix.Vec2{a.Panel.Base().Layout().PixelSize().X(), 0})
-}
-
-func (a *Area) BottomLeftCorner() matrix.Vec2 {
-	return a.TopLeftCorner().Add(matrix.Vec2{0, a.Panel.Base().Layout().PixelSize().Y()})
-}
-
-func (a *Area) BottomRightCorner() matrix.Vec2 {
-	return a.TopLeftCorner().Add(matrix.Vec2{a.Panel.Base().Layout().PixelSize().X(), a.Panel.Base().Layout().PixelSize().Y()})
-}
-
-// ConstrainAndScale sets the offset and dimensions of this Area's
-// panel while ensuring that the panel cannot leave the window.
-// The dimensions provided here are normalized against the DPMM of the window.
-func (a *Area) ConstrainAndScale(editor EditorAreaInterface, posx, posy, width, height float32) {
-	if a.Type.HandlerFactory == nil {
-		return
-	}
-	a.assertInitialized()
-	maxW := float32(editor.Host().Window.Width())
-	maxH := float32(editor.Host().Window.Height())
-	wx, wy := a.GetHandler().GetOverlayDimensions()
-	wx = min(max(wx, 256), maxW-24)
-	wy = min(max(wy, 256), maxH-24)
-	// TODO actually run impl on this
-}
-
-func (a *Area) Host() *engine.Host {
-	if a.manager == nil {
-		return nil
-	}
-	return a.manager.Host
-}
-
 func (a *Area) assertInitialized() {
 	if a.Panel == nil || a.manager == nil {
 		panic("UI audit on uninitialized area")
-	}
-}
-
-func (a *Area) IsOverlay() bool {
-	return a.OverlayPX > -1 && a.OverlayPY > -1
-}
-
-func (a *Area) Update(editor EditorAreaInterface, deltaTime float64, posx, posy, width, height float32) {
-	if a.Panel != nil {
-		if a.IsOverlay() || a.Type.Flags == 0 {
-			a.Panel.Base().Layout().SetOffset(posx, posy)
-			a.Panel.Base().Layout().Scale(width, height)
-		} else {
-			gutter := editor.Theme().SizeTrenchGlobal / 2
-			a.Panel.Base().Layout().SetOffset(posx+gutter, posy+gutter)
-			a.Panel.Base().Layout().Scale(width-gutter, height-gutter)
-		}
-	}
-
-	// TODO scale the Area accoding to how wide the primary panel's scrollbar is, if it
-	// exists and depending on the scrollable axis/axes
-
-	if a.Type.HandlerFactory != nil {
-		a.GetHandler().Update(a, editor, deltaTime, posx, posy, width, height)
-	}
-	if a.ChildA != nil && a.ChildB != nil {
-		if a.ChildA == a || a.ChildB == a {
-			panic("cycle in Area hierarchy")
-		}
-		switch a.SplitDirection {
-		case SplitHorizontal:
-			split := width * a.Ratio
-			a.ChildA.Update(editor, deltaTime, posx, posy, split, height)
-			a.ChildB.Update(editor, deltaTime, split, posy, width-split, height)
-		case SplitVertical:
-			split := height * a.Ratio
-			a.ChildA.Update(editor, deltaTime, posx, posy, width, height-split)
-			a.ChildB.Update(editor, deltaTime, posx, split, width, height-split)
-		}
-	}
-}
-
-// PerformAsChildren selectively recurses into child Areas and runs the
-// supplied function, provided the Area either has its own children or a
-// valid handler.
-func (a *Area) PerformAsChildren(operation func(AreaHandler), editor EditorAreaInterface) {
-	if a.Type.HandlerFactory != nil {
-		operation(a.GetHandler())
-	}
-	if a.ChildA != nil && a.ChildB != nil {
-		if a.ChildA == a || a.ChildB == a {
-			panic("cycle in Area hierarchy")
-		}
-		a.ChildA.PerformAsChildren(operation, editor)
-		a.ChildB.PerformAsChildren(operation, editor)
 	}
 }
 
@@ -734,5 +707,18 @@ func (s BottomLeftStylizer) ProcessStyle(layout *ui.Layout) []error {
 	}
 	selfHeight := layout.PixelSize().Y()
 	layout.SetInnerOffsetTop(-height + selfHeight)
+	return nil
+}
+
+func (s CenterStylizer) ProcessStyle(layout *ui.Layout) []error {
+	width := float32(layout.Ui().Host().Window.Width())
+	height := float32(layout.Ui().Host().Window.Height())
+	parent := s.Parent.Value()
+	if parent != nil {
+		width = parent.Layout().PixelSize().X()
+		height = parent.Layout().PixelSize().Y()
+	}
+	layout.SetInnerOffsetTop(-height/2 + layout.PixelSize().Y())
+	layout.SetInnerOffsetLeft(-width/2 + layout.PixelSize().X())
 	return nil
 }

@@ -11,7 +11,6 @@ import (
 	"kaijuengine.com/editor/editor_areas"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_settings"
-	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/editor/project/project_file_system"
@@ -33,14 +32,11 @@ type EditorPlugin interface {
 // the menu bar tab strip.
 type EditorPluginInterface interface {
 	Host() *engine.Host
-	BlurInterface()
-	FocusInterface()
 	Actions() *editor_action.Service
 	Settings() *editor_settings.Settings
 	Events() *editor_events.EditorEvents
 	History() *memento.History
 	Project() *project.Project
 	ProjectFileSystem() *project_file_system.FileSystem
-	StageView() *editor_stage_view.StageView
 	UIWorkspace() *editor_areas.WorkspaceManager
 }

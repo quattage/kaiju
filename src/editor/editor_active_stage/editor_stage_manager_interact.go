@@ -1,0 +1,320 @@
+/******************************************************************************/
+/* editor_active_stage_interact.go                                           */
+/******************************************************************************/
+/* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
+/******************************************************************************/
+
+package editor_active_stage
+
+import (
+	"slices"
+
+	"kaijuengine.com/engine/graviton"
+	"kaijuengine.com/klib"
+	"kaijuengine.com/matrix"
+	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/registry/shader_data_registry"
+)
+
+type SelectionMode int
+
+const (
+	SelectionModeReplace SelectionMode = iota
+	SelectionModeAppend
+	SelectionModeToggle
+)
+
+func (m *ActiveStage) HasSelection() bool { return len(m.selected) > 0 }
+
+func (m *ActiveStage) IsSelected(e *StageEntity) bool {
+	defer tracing.NewRegion("StageManager.IsSelected").End()
+	for i := range m.selected {
+		if m.selected[i] == e {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *ActiveStage) IsSelectedById(id string) bool {
+	defer tracing.NewRegion("StageManager.IsSelected").End()
+	for i := range m.selected {
+		if m.selected[i].StageData.Description.Id == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *ActiveStage) ClearSelection() {
+	defer tracing.NewRegion("StageManager.ClearSelection").End()
+	if len(m.selected) == 0 {
+		return
+	}
+	cpy := slices.Clone(m.selected)
+	m.selected = klib.WipeSlice(m.selected)
+	if m.history != nil {
+		m.history.Add(&selectHistory{
+			manager: m,
+			from:    cpy,
+		})
+	}
+	for i := range cpy {
+		m.clearShaderDataFlag(cpy[i])
+		m.OnEntityDeselected.Execute(cpy[i])
+	}
+}
+
+func (m *ActiveStage) SelectEntity(e *StageEntity) {
+	defer tracing.NewRegion("StageManager.SelectEntity").End()
+	if e == nil || e.IsDeleted() || e.IsLocked() {
+		return
+	}
+	for i := range m.selected {
+		if m.selected[i] == e {
+			return
+		}
+	}
+	history := &selectHistory{
+		manager: m,
+		from:    slices.Clone(m.selected),
+	}
+	m.selected = append(m.selected, e)
+	history.to = slices.Clone(m.selected)
+	if m.history != nil {
+		m.history.Add(history)
+	}
+	m.setShaderDataFlag(e)
+	m.OnEntitySelected.Execute(e)
+}
+
+func (m *ActiveStage) SelectEntityById(id string) {
+	m.ClearSelection()
+	m.SelectAppendEntityById(id)
+}
+
+func (m *ActiveStage) SelectWithChildrenOrSingleEntityById(id string) {
+	if entity, ok := m.EntityById(id); ok {
+		m.selectWithChildrenOrSingleEntityById(entity)
+	}
+}
+
+func (m *ActiveStage) selectWithChildrenOrSingleEntityById(entity *StageEntity) {
+	if entity.HasChildren() {
+		for _, child := range entity.Children {
+			m.selectWithChildrenOrSingleEntityById(EntityToStageEntity(child))
+			m.SelectEntity(entity)
+		}
+	} else {
+		m.SelectEntity(entity)
+	}
+}
+
+func (m *ActiveStage) SelectAppendEntityById(id string) {
+	if e, ok := m.EntityById(id); ok {
+		m.SelectEntity(e)
+	}
+}
+
+func (m *ActiveStage) SelectToggleEntityById(id string) {
+	if e, ok := m.EntityById(id); ok {
+		if m.IsSelected(e) {
+			m.DeselectEntity(e)
+		} else {
+			m.SelectEntity(e)
+		}
+	}
+}
+
+func (m *ActiveStage) DeselectEntity(e *StageEntity) {
+	defer tracing.NewRegion("StageManager.DeselectEntity").End()
+	for i := range m.selected {
+		if m.selected[i] == e {
+			history := &selectHistory{
+				manager: m,
+				from:    slices.Clone(m.selected),
+			}
+			m.selected = slices.Delete(m.selected, i, i+1)
+			history.to = slices.Clone(m.selected)
+			m.clearShaderDataFlag(e)
+			m.OnEntityDeselected.Execute(e)
+			return
+		}
+	}
+}
+
+func (m *ActiveStage) TryHitEntity(ray graviton.Ray) (*StageEntity, matrix.Vec3, bool) {
+	if target, pt, ok := m.worldBVH.RayIntersect(ray, 1000); ok {
+		return target.(*StageEntity), pt, ok
+	}
+	return nil, matrix.Vec3{}, false
+}
+
+func (m *ActiveStage) TrySelect(ray graviton.Ray) (*StageEntity, bool) {
+	defer tracing.NewRegion("StageManager.TrySelect").End()
+	m.ClearSelection()
+	return m.TryAppendSelect(ray)
+}
+
+func (m *ActiveStage) TryBoxSelect(screenBox matrix.Vec4) {
+	m.TryBoxSelectWithMode(screenBox, SelectionModeReplace)
+}
+
+func (m *ActiveStage) TryBoxSelectWithMode(screenBox matrix.Vec4, mode SelectionMode) {
+	defer tracing.NewRegion("StageManager.TryBoxSelect").End()
+	cam := m.host.PrimaryCamera()
+	f := cam.Frustum()
+	v, p := cam.View(), cam.Projection()
+	viewport := cam.Viewport()
+	entities := make([]*StageEntity, 0)
+	for _, e := range m.entities {
+		if e.StageData.Bvh == nil || e.isDeleted || e.IsLocked() {
+			continue
+		}
+		b := e.StageData.Bvh.Bounds()
+		if !b.IntersectsFrustum(f) {
+			continue
+		}
+		ss, ok := matrix.Mat4ToScreenSpace(e.Transform.Position(), v, p, viewport)
+		if !ok {
+			continue
+		}
+		if screenBox.AreaContains(ss.X(), ss.Y()) {
+			entities = append(entities, e)
+		}
+	}
+	m.SelectEntities(entities, mode)
+}
+
+func (m *ActiveStage) SelectEntities(entities []*StageEntity, mode SelectionMode) {
+	defer tracing.NewRegion("StageManager.SelectEntities").End()
+	filtered := make([]*StageEntity, 0, len(entities))
+	for i := range entities {
+		e := entities[i]
+		if e == nil || e.IsDeleted() || e.IsLocked() || slices.Contains(filtered, e) {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	if len(filtered) == 0 && mode != SelectionModeReplace {
+		return
+	}
+	if m.history != nil {
+		m.history.BeginTransaction()
+		defer m.history.CommitTransaction()
+	}
+	switch mode {
+	case SelectionModeAppend:
+		for i := range filtered {
+			m.SelectEntity(filtered[i])
+		}
+	case SelectionModeToggle:
+		for i := range filtered {
+			if m.IsSelected(filtered[i]) {
+				m.DeselectEntity(filtered[i])
+			} else {
+				m.SelectEntity(filtered[i])
+			}
+		}
+	default:
+		m.ClearSelection()
+		for i := range filtered {
+			m.SelectEntity(filtered[i])
+		}
+	}
+}
+
+func (m *ActiveStage) TryAppendSelect(ray graviton.Ray) (*StageEntity, bool) {
+	defer tracing.NewRegion("StageManager.TryAppendSelect").End()
+	if e, _, ok := m.TryHitEntity(ray); ok && !e.IsLocked() {
+		m.SelectEntity(e)
+		return e, true
+	}
+	return nil, false
+}
+
+func (m *ActiveStage) TryToggleSelect(ray graviton.Ray) (*StageEntity, bool) {
+	defer tracing.NewRegion("StageManager.TryToggleSelect").End()
+	if e, _, ok := m.TryHitEntity(ray); ok && !e.IsLocked() {
+		if m.IsSelected(e) {
+			m.DeselectEntity(e)
+		} else {
+			m.SelectEntity(e)
+		}
+		return e, true
+	}
+	return nil, false
+}
+
+func (m *ActiveStage) SelectionCenter() matrix.Vec3 {
+	defer tracing.NewRegion("StageManager.SelectionCenter").End()
+	center := matrix.Vec3Zero()
+	for _, e := range m.selected {
+		b := e.StageData.Bvh.Bounds()
+		center.AddAssign(b.Center)
+	}
+	return center
+}
+
+func (m *ActiveStage) SelectionPivotCenter() matrix.Vec3 {
+	defer tracing.NewRegion("StageManager.SelectionPivotCenter").End()
+	center := matrix.Vec3Zero()
+	for _, e := range m.selected {
+		center.AddAssign(e.Transform.WorldPosition())
+	}
+	return center
+}
+
+func (m *ActiveStage) SelectionBounds() graviton.AABB {
+	defer tracing.NewRegion("StageManager.SelectionBounds").End()
+	var bounds graviton.AABB
+	hasBounds := false
+	for _, e := range m.selected {
+		if e == nil || e.IsDeleted() {
+			continue
+		}
+		var b graviton.AABB
+		if e.StageData.Bvh != nil {
+			e.StageData.Bvh.Refit()
+			b = e.StageData.Bvh.Bounds()
+		} else {
+			b = graviton.AABBFromTransform(&e.Transform)
+		}
+		if !hasBounds {
+			bounds = b
+			hasBounds = true
+		} else {
+			bounds = graviton.AABBUnion(bounds, b)
+		}
+	}
+	if !hasBounds {
+		return graviton.NullAABB
+	}
+	return bounds
+}
+
+func (m *ActiveStage) setShaderDataFlag(root *StageEntity) {
+	var procChildren func(e *StageEntity)
+	procChildren = func(e *StageEntity) {
+		shader_data_registry.StandardShaderDataFlagsSet(
+			e.StageData.ShaderData, shader_data_registry.ShaderDataStandardFlagOutline)
+		for i := range e.Children {
+			procChildren(EntityToStageEntity(e.Children[i]))
+		}
+	}
+	procChildren(root)
+}
+
+func (m *ActiveStage) clearShaderDataFlag(root *StageEntity) {
+	var procChildren func(e *StageEntity)
+	procChildren = func(e *StageEntity) {
+		if !m.IsSelected(e) {
+			shader_data_registry.StandardShaderDataFlagsClear(
+				e.StageData.ShaderData, shader_data_registry.ShaderDataStandardFlagOutline)
+		}
+		for i := range e.Children {
+			procChildren(EntityToStageEntity(e.Children[i]))
+		}
+	}
+	procChildren(root)
+}

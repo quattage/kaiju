@@ -12,11 +12,6 @@ import (
 )
 
 func (ed *Editor) processActionPaletteShortcut(kb *hid.Keyboard) bool {
-	if ed.wsm.StageView.IsFlyCameraInputActive() {
-		ed.actionPaletteKey.pending = false
-		ed.actionPaletteKey.moved = false
-		return false
-	}
 	if ed.IsInputFocused() {
 		ed.actionPaletteKey.pending = false
 		ed.actionPaletteKey.moved = false
@@ -50,7 +45,7 @@ func (ed *Editor) processActionPaletteShortcut(kb *hid.Keyboard) bool {
 }
 
 func (ed *Editor) processActionKeyBindings(kb *hid.Keyboard) bool {
-	if ed.IsInputFocused() || ed.wsm.StageView.IsFlyCameraInputActive() {
+	if ed.IsInputFocused() {
 		return false
 	}
 	for _, binding := range ed.actionBindings() {

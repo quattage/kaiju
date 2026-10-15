@@ -8,9 +8,9 @@ package editor_areas
 
 import (
 	"kaijuengine.com/editor/editor_action"
+	"kaijuengine.com/editor/editor_active_stage"
 	"kaijuengine.com/editor/editor_events"
 	"kaijuengine.com/editor/editor_settings"
-	"kaijuengine.com/editor/editor_stage_manager/editor_stage_view"
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/editor/project"
 	"kaijuengine.com/editor/project/project_database/content_database"
@@ -46,21 +46,11 @@ type EditorAreaInterface interface {
 	History() *memento.History
 	Project() *project.Project
 	ProjectFileSystem() *project_file_system.FileSystem
-	StageView() *editor_stage_view.StageView
-
-	// Focus management — Overlays are expected to blur the areas
-	// underneath them, then re-focus on close.
-	BlurInterface()
-	FocusInterface()
-	IsInputFocused() bool
 
 	// UpdateSettings persists the current Settings struct and re-applies
 	// frame rate / scroll speed / etc. to the live host.
 	UpdateSettings()
 
-	// ShowReferences opens the references viewer overlay for the given
-	// content id. Lives here because the overlay is editor-owned, not
-	// Area-owned.
 	ShowReferences(id string)
 
 	// SetMinimumWindoWSize ensures that the window cannot be smaller
@@ -68,4 +58,7 @@ type EditorAreaInterface interface {
 	// on startup to ensure that the editor window can't be resized in a way
 	// that could cause issues with the Area system.
 	SetMinimumWindowSize(width, height int)
+
+	// GetActiveStage returns the current Stage selected by the editor.
+	GetActiveStage() *editor_active_stage.ActiveStage
 }

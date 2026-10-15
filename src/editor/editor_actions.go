@@ -48,7 +48,6 @@ func (ed *Editor) actionContext() editor_action.Context {
 			"projectFileSystem": ed.ProjectFileSystem(),
 			"events":            &ed.events,
 			"cache":             ed.Cache(),
-			"stageView":         &ed.wsm.StageView,
 		},
 	}
 }

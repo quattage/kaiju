@@ -31,11 +31,12 @@ import (
 	"kaijuengine.com/rendering/textures"
 
 	// we import the default areas so that their initializers are hit
-	_ "kaijuengine.com/editor/editor_areas/defaults/content_browser"
-	_ "kaijuengine.com/editor/editor_areas/defaults/fallback"
-	_ "kaijuengine.com/editor/editor_areas/defaults/loading_screen"
-	"kaijuengine.com/editor/editor_areas/defaults/splash_screen"
-	_ "kaijuengine.com/editor/editor_areas/defaults/stage_viewport"
+	_ "kaijuengine.com/editor/editor_areas/content_browser"
+	_ "kaijuengine.com/editor/editor_areas/example"
+	_ "kaijuengine.com/editor/editor_areas/fallback"
+	_ "kaijuengine.com/editor/editor_areas/loading_screen"
+	"kaijuengine.com/editor/editor_areas/splash_screen"
+	_ "kaijuengine.com/editor/editor_areas/stage_view"
 )
 
 // Editor is the entry point structure for the entire editor. It acts as the
@@ -54,7 +55,7 @@ type Editor struct {
 	logging        editor_logging.Logging
 	history        memento.History
 	events         editor_events.EditorEvents
-	wsm            editor_areas.WorkspaceManager
+	workspace      editor_areas.WorkspaceManager
 	plugins        []editor_plugin.EditorPlugin
 	fileDropRouter FileDropRouter
 	window         struct {
@@ -201,8 +202,8 @@ func (ed *Editor) updatePowerState(deltaTime float64) {
 
 func (ed *Editor) earlyLoadUI() {
 	defer tracing.NewRegion("Editor.earlyLoadUI").End()
-	area := ed.wsm.Initialize(ed)
-	splash := area.GetConformedHandler[*splash_screen.Handler]()
+	area := ed.workspace.Initialize(ed)
+	splash := area.GetHandlerAs[*splash_screen.Handler]()
 	splash.HandleCreateProject = ed.createProject
 	splash.HandleOpenProject = ed.openProject
 }

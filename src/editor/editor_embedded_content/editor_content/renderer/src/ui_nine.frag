@@ -69,7 +69,7 @@ void main(void) {
 	float outlineOffset = max(0.0, fragOutlineSize.y);
 	float outlineOutset = outlineWidth + outlineOffset;
 
-	vec2 dimensions = floor(fragSize2D.xy) + 1; // ??
+	vec2 dimensions = round(fragSize2D.xy) + 1; // ??
 	vec2 expandedDimensions = dimensions + vec2(outlineOutset * 2.0);
 
 	vec2 pixPos = normUV * dimensions;

@@ -184,7 +184,7 @@ div .row {
     align-items: center;
     width: 100%;
     color: color-mix(in srgb var(--ed-color-text-passive) black 65%);
-    background-color: color-mix(in srgb var(--ed-color-panel) black 88%);
+    background-color: var(--ed-color-panel);
     font-size: 1em;
     padding: 3px 16px 5px 16px;
 }

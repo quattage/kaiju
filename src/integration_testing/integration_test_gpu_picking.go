@@ -14,7 +14,7 @@ import (
 	"log/slog"
 	"os"
 
-	"kaijuengine.com/editor/editor_stage_manager"
+	"kaijuengine.com/editor/editor_active_stage"
 	"kaijuengine.com/editor/memento"
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
@@ -32,8 +32,8 @@ func init() {
 func IntegrationTestGPUPickingVisiblePixels(host *engine.Host) {
 	history := &memento.History{}
 	history.Initialize(128)
-	manager := &editor_stage_manager.StageManager{}
-	manager.Initialize(host, history, nil)
+	manager := &editor_active_stage.ActiveStage{}
+	manager.Initialize(host, history)
 
 	material, err := host.MaterialCache().Material(assets.MaterialDefinitionEditorPicking)
 	if err != nil {
@@ -81,12 +81,12 @@ func IntegrationTestGPUPickingVisiblePixels(host *engine.Host) {
 				fmt.Errorf("center pick ID = %d, want front ID %d", centerID, front.PickID))
 		}
 		centerEntities := manager.EntitiesByPickIDs([]uint32{centerID})
-		manager.SelectEntities(centerEntities, editor_stage_manager.SelectionModeReplace)
-		assertSelectionOrder(manager, []*editor_stage_manager.StageEntity{front}, "center click")
+		manager.SelectEntities(centerEntities, editor_active_stage.SelectionModeReplace)
+		assertSelectionOrder(manager, []*editor_active_stage.StageEntity{front}, "center click")
 
 		visibleEntities := manager.EntitiesByPickIDs(visibleIDs)
-		manager.SelectEntities(visibleEntities, editor_stage_manager.SelectionModeReplace)
-		assertSelectionOrder(manager, []*editor_stage_manager.StageEntity{front, side}, "box select")
+		manager.SelectEntities(visibleEntities, editor_active_stage.SelectionModeReplace)
+		assertSelectionOrder(manager, []*editor_active_stage.StageEntity{front, side}, "box select")
 		if manager.IsSelected(back) {
 			gpuPickingIntegrationFail("occluded entity selected", nil)
 		}
@@ -94,8 +94,8 @@ func IntegrationTestGPUPickingVisiblePixels(host *engine.Host) {
 	})
 }
 
-func createPickingCube(host *engine.Host, manager *editor_stage_manager.StageManager,
-	material *rendering.Material, name string, position, scale matrix.Vec3) *editor_stage_manager.StageEntity {
+func createPickingCube(host *engine.Host, manager *editor_active_stage.ActiveStage,
+	material *rendering.Material, name string, position, scale matrix.Vec3) *editor_active_stage.StageEntity {
 	e := manager.AddEntity(name, position)
 	e.Transform.SetScale(scale)
 	mesh := rendering.NewMeshCube(host.MeshCache())
@@ -163,8 +163,8 @@ func containsIntegrationPickID(ids []uint32, id uint32) bool {
 	return false
 }
 
-func assertSelectionOrder(manager *editor_stage_manager.StageManager,
-	want []*editor_stage_manager.StageEntity, label string) {
+func assertSelectionOrder(manager *editor_active_stage.ActiveStage,
+	want []*editor_active_stage.StageEntity, label string) {
 	got := manager.Selection()
 	if len(got) != len(want) {
 		gpuPickingIntegrationFail(label+" selection count",
