@@ -15,13 +15,14 @@ import (
 
 func TestGlobalShaderDataForCameraStoresPerViewData(t *testing.T) {
 	uiCamera := cameras.NewStandardCameraOrthographic(800, 600, 800, 600, matrix.Vec3{0, 0, 250})
-	leftCamera := cameras.NewStandardCamera(320, 240, 320, 240, matrix.Vec3{-4, 2, -6})
+	lvs := matrix.NewVec2(320, 240)
+	leftCamera := cameras.NewStandardCamera(lvs.X(), lvs.Y(), lvs.X(), lvs.Y(), matrix.Vec3{-4, 2, -6})
 	leftCamera.SetLookAt(matrix.Vec3Zero())
-	rightCamera := cameras.NewStandardCamera(640, 240, 640, 240, matrix.Vec3{4, 2, -6})
+	rvs := matrix.NewVec2(640, 240)
+	rightCamera := cameras.NewStandardCamera(rvs.X(), rvs.Y(), rvs.X(), rvs.Y(), matrix.Vec3{4, 2, -6})
 	rightCamera.SetLookAt(matrix.Vec3Zero())
-
-	left := globalShaderDataForCamera(leftCamera, uiCamera, LightsForRender{}, 1.5, matrix.Vec2{320, 240})
-	right := globalShaderDataForCamera(rightCamera, uiCamera, LightsForRender{}, 1.5, matrix.Vec2{640, 240})
+	left := globalShaderDataForCamera(leftCamera, uiCamera, LightsForRender{}, 1.5, lvs, lvs)
+	right := globalShaderDataForCamera(rightCamera, uiCamera, LightsForRender{}, 1.5, rvs, rvs)
 	if left.View == right.View {
 		t.Fatalf("view matrices should differ between cameras")
 	}
@@ -37,7 +38,8 @@ func TestGlobalShaderDataForCameraStoresPerViewData(t *testing.T) {
 }
 
 func TestGlobalShaderDataAssignsOnlyOneDirectionalShadowSlot(t *testing.T) {
-	camera := cameras.NewStandardCamera(320, 240, 320, 240, matrix.Vec3{0, 2, -6})
+	vs := matrix.NewVec2(320, 240)
+	camera := cameras.NewStandardCamera(vs.X(), vs.Y(), vs.X(), vs.Y(), matrix.Vec3{0, 2, -6})
 	device := &GPUDevice{}
 	first := NewLight(device, nil, nil, LightTypeDirectional)
 	first.SetCastsShadows(true)
@@ -46,9 +48,9 @@ func TestGlobalShaderDataAssignsOnlyOneDirectionalShadowSlot(t *testing.T) {
 	point := NewLight(device, nil, nil, LightTypePoint)
 	point.SetCastsShadows(true)
 
-	data := globalShaderDataForCamera(camera, nil, LightsForRender{
-		Lights: []Light{first, second, point},
-	}, 0, matrix.Vec2{320, 240})
+	data := globalShaderDataForCamera(camera, nil,
+		LightsForRender{Lights: []Light{first, second, point}},
+		0, matrix.Vec2{320, 240}, vs)
 	if data.LightInfos[0].ShadowIndex != 0 {
 		t.Fatalf("first directional shadow index = %d, want 0", data.LightInfos[0].ShadowIndex)
 	}
@@ -60,8 +62,7 @@ func TestGlobalShaderDataAssignsOnlyOneDirectionalShadowSlot(t *testing.T) {
 	first.SetCastsShadows(false)
 	second.SetCastsShadows(false)
 	data = globalShaderDataForCamera(camera, nil, LightsForRender{
-		Lights: []Light{first, second, point},
-	}, 0, matrix.Vec2{320, 240})
+		Lights: []Light{first, second, point}}, 0, vs, vs)
 	for i := range 3 {
 		if data.LightInfos[i].ShadowIndex != -1 {
 			t.Fatalf("disabled light %d shadow index = %d, want -1", i, data.LightInfos[i].ShadowIndex)

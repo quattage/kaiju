@@ -97,6 +97,10 @@ func (e *ViewportCamera) ClearViewportBounds() {
 	e.bounds.Enabled = false
 }
 
+func (e *ViewportCamera) IsBoundsApproximately(width, height float32) bool {
+	return matrix.Vec2Approx(e.bounds.Size(), matrix.NewVec2(width, height))
+}
+
 func (e *ViewportCamera) LookAtPoint() matrix.Vec3 {
 	defer tracing.NewRegion("EditorCamera.LookAtPoint").End()
 	return e.camera.LookAt()

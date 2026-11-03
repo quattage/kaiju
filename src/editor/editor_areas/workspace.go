@@ -9,11 +9,13 @@ package editor_areas
 import (
 	"fmt"
 	"log/slog"
+	"math"
 
 	"kaijuengine.com/editor/editor_active_stage"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/matrix"
 	"kaijuengine.com/platform/profiler/tracing"
+	"kaijuengine.com/rendering"
 )
 
 var areaTypes klib.Registry[AreaType] = klib.NewRegistry[AreaType](
@@ -51,6 +53,14 @@ func (wm *WorkspaceManager) Initialize(ed EditorAreaInterface) *Area {
 		panic("Failed to open splash screen! - " + err.Error())
 	}
 	ed.Host().SetSwapChainClearColor(ed.Theme().ColorBackground)
+	view, ok := ed.Host().RenderViews.View(rendering.DefaultRenderViewName)
+	if !ok {
+		panic("couldn't get default renderview while loading workspace")
+	}
+	// we exclude the editor renderlayer since each individual area
+	// needs to mask out its own portion for rendering non-UI content within
+	// the UI panel
+	view.ExcludeLayer(rendering.RenderLayerEditor)
 	wm.Update(0)
 	wm.constructDefaultWorkspace()
 	return area
@@ -215,11 +225,28 @@ func (wm *WorkspaceManager) Update(deltaTime float64) {
 func (a *Area) updateArea(wm *WorkspaceManager, deltaTime float64, posx, posy, width, height, gutterThick float32, nearby *[]Gutter) {
 	if a.IsFunctional() {
 		if a.IsOverlay() || a.areaType.Flags == 0 || a.owner == wm.main {
-			a.Panel.Base().Layout().SetOffset(posx, posy)
-			a.Panel.Base().Layout().Scale(width, height)
+			a.Panel.Base().Layout().SetOffset(float32(max(1, int(math.Ceil(float64(posx))))), float32(max(1, int(math.Ceil(float64(posy))))))
+			a.Panel.Base().Layout().Scale(float32(max(1, int(math.Ceil(float64(width))))), float32(max(1, int(math.Ceil(float64(height))))))
 		} else {
-			a.Panel.Base().Layout().SetOffset(posx+gutterThick, posy+gutterThick)
-			a.Panel.Base().Layout().Scale(width-gutterThick, height-gutterThick)
+			a.Panel.Base().Layout().SetOffset(float32(max(1, int(math.Ceil(float64(posx+gutterThick))))), float32(max(1, int(math.Ceil(float64(posy+gutterThick))))))
+			a.Panel.Base().Layout().Scale(float32(max(1, int(math.Ceil(float64(width+gutterThick))))), float32(max(1, int(math.Ceil(float64(height+gutterThick))))))
+		}
+		if !wm.IsGrabbing() {
+			mp := wm.Editor().Host().Window.Cursor.ScreenPosition()
+			if mp.X() >= posx && mp.Y() >= posy && mp.X() <= posx+width && mp.Y() <= posy+height {
+				// we maintain the old focus and current focus as instance varaibles
+				// for use with other editor/ui stuff later
+				wm.previousFocused = wm.focused
+				wm.focused = a
+				if wm.previousFocused != nil {
+					wm.previousFocused.focused = false
+					wm.previousFocused.blurInterface(wm)
+				}
+				if wm.focused != nil {
+					wm.focused.focused = true
+					wm.focused.focusInterface(wm)
+				}
+			}
 		}
 		a.GetHandler().Update(a, wm.Editor(), deltaTime, posx, posy, width, height)
 	} else if a.IsComposite() {
@@ -252,29 +279,8 @@ func (a *Area) updateArea(wm *WorkspaceManager, deltaTime float64, posx, posy, w
 					*nearby = append(*nearby, Gutter{a, posx, posy + split - gutterThick/2, width, gutterThick * 2, dist, false})
 				}
 			}
-			// We recurse into children. The cumulative position and size here
-			// are computed based on the area's Ratio and never stored.
 			a.childA.updateArea(wm, deltaTime, posx, posy, width, split, gutterThick, nearby)
 			a.childB.updateArea(wm, deltaTime, posx, split, width, height-split, gutterThick, nearby)
-		}
-	} else if !wm.IsGrabbing() {
-		// An area that is owned and has no children is guaranteed to be the
-		// deepest for this branch, so we manage focus on it by detecting
-		// whether or not the mouse cursor is within it
-		mp := wm.Editor().Host().Window.Cursor.ScreenPosition()
-		if mp.X() >= posx && mp.Y() >= posy && mp.X() <= posx+width && mp.Y() <= posy+height {
-			// we maintain the old focus and current focus as instance varaibles
-			// for use with other editor/ui stuff later
-			wm.previousFocused = wm.focused
-			wm.focused = a
-			if wm.previousFocused != nil {
-				wm.previousFocused.focused = false
-				wm.previousFocused.blurInterface(wm)
-			}
-			if wm.focused != nil {
-				wm.focused.focused = true
-				wm.focused.focusInterface(wm)
-			}
 		}
 	}
 }
@@ -422,13 +428,14 @@ func (wm *WorkspaceManager) Serialize(ed EditorAreaInterface) {
 }
 
 func (wm *WorkspaceManager) constructDefaultWorkspace() {
-	_, err := wm.Open("com.kaiju.area_stage_view", nil, SplitHorizontal, 0.5)
+	sv, err := wm.Open("com.kaiju.area_stage_view", nil, SplitHorizontal, 0.5)
 	if err != nil {
 		panic(err.Error())
 	}
-	p, _ := wm.Open("com.kaiju.area_content_browser", nil, SplitVertical, -0.5)
-	p1, _ := wm.Open("com.kaiju.area_fallback", p, SplitHorizontal, 0.75)
-	wm.Open("com.kaiju.area_example", p1, SplitHorizontal, 0.75)
+	cb, _ := wm.Open("com.kaiju.area_content_browser", nil, SplitVertical, -0.5)
+	wm.Open("com.kaiju.area_fallback", sv.childA, SplitHorizontal, -0.75)
+	cbSplit, _ := wm.Open("com.kaiju.area_fallback", cb, SplitHorizontal, 0.75)
+	wm.Open("com.kaiju.area_example", cbSplit, SplitHorizontal, 0.75)
 }
 
 func (wm *WorkspaceManager) GetActiveStage() *editor_active_stage.ActiveStage {
