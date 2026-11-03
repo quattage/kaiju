@@ -246,7 +246,7 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 		}
 		state := group.viewStateForView(view.Key())
 		if err := g.resizeBuffers(material, group, state); err != nil {
-			slog.Error("failed to resize draw instance buffers", "error", err)
+			slog.Error("failed to resize draw instance buffers for '"+material.Shader.ShaderDataName()+"'", "error", err)
 			continue
 		}
 		group.UpdateDataForView(g, g.Painter.currentFrame, lights, view.Key())
@@ -335,12 +335,12 @@ func (g *GPUDevice) writeDrawingDescriptors(material *Material, groups []DrawIns
 				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.Handle), shadowImageInfos[:], 2, false))
 				addWrite(prepareSetWriteImage(vk.DescriptorSet(set.Handle), shadowCubeImageInfos[:], 3, false))
 			}
-			for k := range boundBufferInfos {
-				addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.Handle),
-					[]vk.DescriptorBufferInfo{boundBufferInfos[k].info},
-					uint32(boundBufferInfos[k].boundBuffer.bindingId),
-					vulkan_const.DescriptorTypeStorageBuffer))
-			}
+		}
+		for k := range boundBufferInfos {
+			addWrite(prepareSetWriteBuffer(vk.DescriptorSet(set.Handle),
+				[]vk.DescriptorBufferInfo{boundBufferInfos[k].info},
+				uint32(boundBufferInfos[k].boundBuffer.bindingId),
+				vulkan_const.DescriptorTypeStorageBuffer))
 		}
 	}
 	return allWrites, shouldDraw

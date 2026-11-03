@@ -8,6 +8,7 @@ package rendering
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"unsafe"
 
@@ -159,7 +160,7 @@ func (g *GPUDevice) resizeBuffers(material *Material, group *DrawInstanceGroup, 
 							gpu_types.BufferUsageVertexBufferBit|gpu_types.BufferUsageTransferDstBit|gpu_types.BufferUsageStorageBufferBit,
 							gpu_types.MemoryPropertyHostVisibleBit|gpu_types.MemoryPropertyHostCoherentBit)
 						if err != nil {
-							return err
+							return errors.Join(err, fmt.Errorf(" (name: %s, binding: %v)", b.FullName(), b.Binding))
 						}
 						var data unsafe.Pointer
 						if err = g.MapMemory(buff.memories[j], 0, buff.size, 0, &data); err != nil {

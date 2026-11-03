@@ -743,6 +743,33 @@ func NewMeshGrid(cache *MeshCache, key string, points []matrix.Vec3, vertColor m
 	}
 }
 
+// Generates a mesh with nothing but an arbitrary amount of zero vertices.
+// Useable as a pool of vertices to create meshes in shaders where
+// some arbitrary encoding can be performed using gl_VertexIndex
+func NewEmptyMesh(cache *MeshCache, key string, count uint32, max bool) *Mesh {
+	defer tracing.NewRegion("rendering.NewEmptyMesh").End()
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	var verts = make([]Vertex, count)
+	var indices = make([]uint32, count)
+	for x := uint32(0); x < count; x++ {
+		verts[x].Position = matrix.Vec3{0.0, 0.0, 0.0}
+		verts[x].Normal = matrix.Vec3{0.0, 0.0, 1.0}
+		indices[x] = x
+	}
+	// the resulting mesh will have its AABB created with an effectively infinite extents
+	// this is goofy but it's the easiest way to bypass draw instance view culling
+	if max {
+		if count < 2 {
+			panic("An empty mesh with less than two vertices cannot be maximized!")
+		}
+		verts[0].Position = matrix.Vec3{math.MaxFloat32, math.MaxFloat32, math.MaxFloat32}
+		verts[count-1].Position = matrix.Vec3{-math.MaxFloat32, -math.MaxFloat32, -math.MaxFloat32}
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
 func NewMeshPoint(cache *MeshCache, key string, position matrix.Vec3, vertColor matrix.Color) *Mesh {
 	defer tracing.NewRegion("rendering.NewMeshPoint").End()
 	if mesh, ok := cache.FindMesh(key); ok {
@@ -1251,6 +1278,41 @@ func NewMeshArrow(cache *MeshCache, shaftLength, shaftRadius, tipHeight, tipRadi
 		tipHeight, tipRadius, segments, matrix.Mat4Identity(), "")
 }
 
+func NewMeshHandleWithTransform(cache *MeshCache, shaftLength, shaftRadius, tipSize float32, segments int, transform matrix.Mat4, uid string) *Mesh {
+	defer tracing.NewRegion("rendering.NewMeshHandle").End()
+	if segments < 3 {
+		segments = 3
+	}
+	key := fmt.Sprintf("handle_%.2f_%.2f_%.2f_%d_%s", shaftLength, shaftRadius, tipSize, segments, uid)
+	if mesh, ok := cache.FindMesh(key); ok {
+		return mesh
+	}
+	shaftVerts, shaftIndices := meshCylinder(shaftLength, shaftRadius, segments, true)
+	tipVerts, tipIndices := meshCubeComplex(tipSize)
+	for i := range shaftVerts {
+		shaftVerts[i].Position[matrix.Vy] += shaftLength * 0.5
+	}
+	for i := range tipVerts {
+		tipVerts[i].Position[matrix.Vy] += shaftLength
+	}
+	verts := append(shaftVerts, tipVerts...)
+	for i := range verts {
+		verts[i].Position = matrix.Mat4MultiplyVec4(transform, verts[i].Position.AsVec4()).AsVec3()
+	}
+	indices := make([]uint32, 0, len(shaftIndices)+len(tipIndices))
+	indices = append(indices, shaftIndices...)
+	offset := uint32(len(shaftVerts))
+	for i := range tipIndices {
+		indices = append(indices, tipIndices[i]+offset)
+	}
+	return cache.Mesh(key, verts, indices)
+}
+
+func NewMeshHandle(cache *MeshCache, shaftLength, shaftRadius, tipSize float32, segments int) *Mesh {
+	return NewMeshHandleWithTransform(cache, shaftLength, shaftRadius,
+		tipSize, segments, matrix.Mat4Identity(), "")
+}
+
 func meshCylinder(height, radius float32, segments int, capped bool) ([]Vertex, []uint32) {
 	if segments < 3 {
 		segments = 3
@@ -1394,6 +1456,59 @@ func meshCone(height, radius float32, segments int, capped bool) ([]Vertex, []ui
 			indices[iIndex+1] = v0
 			indices[iIndex+2] = v1
 			iIndex += 3
+		}
+	}
+	return verts, indices
+}
+
+func meshCubeComplex(size float32) ([]Vertex, []uint32) {
+	defer tracing.NewRegion("rendering.meshCubeComplex").End()
+	verts := make([]Vertex, 24)
+	indices := make([]uint32, 24)
+	faces := []struct {
+		normal matrix.Vec3
+		rotate func(matrix.Vec3) matrix.Vec3
+	}{
+		// Front (+Z)
+		{matrix.Vec3{0, 0, 1}, func(v matrix.Vec3) matrix.Vec3 {
+			return v
+		}},
+		// Back (-Z)
+		{matrix.Vec3{0, 0, -1}, func(v matrix.Vec3) matrix.Vec3 {
+			return matrix.Vec3{-v.X(), v.Y(), -v.Z()}
+		}},
+		// Right (+X)
+		{matrix.Vec3{1, 0, 0}, func(v matrix.Vec3) matrix.Vec3 {
+			return matrix.Vec3{v.Z(), v.Y(), -v.X()}
+		}},
+		// Left (-X)
+		{matrix.Vec3{-1, 0, 0}, func(v matrix.Vec3) matrix.Vec3 {
+			return matrix.Vec3{-v.Z(), v.Y(), v.X()}
+		}},
+		// Top (+Y)
+		{matrix.Vec3{0, 1, 0}, func(v matrix.Vec3) matrix.Vec3 {
+			return matrix.Vec3{v.X(), -v.Z(), v.Y()}
+		}},
+		// Bottom (-Y)
+		{matrix.Vec3{0, -1, 0}, func(v matrix.Vec3) matrix.Vec3 {
+			return matrix.Vec3{v.X(), v.Z(), -v.Y()}
+		}},
+	}
+
+	for _, face := range faces {
+		offset := uint32(len(verts))
+
+		for i := 0; i < 4; i++ {
+			v := Vertex{}
+			v.Position = face.rotate(meshQuadCenter[i])
+			v.Normal = face.normal
+			v.UV0 = meshQuadUvs[i]
+			v.Color = matrix.ColorWhite()
+			verts = append(verts, v)
+		}
+
+		for _, idx := range meshQuadIndexes {
+			indices = append(indices, offset+idx)
 		}
 	}
 	return verts, indices

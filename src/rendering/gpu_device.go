@@ -336,6 +336,10 @@ func (g *GPUDevice) updateGlobalUniformBufferForView(view RenderViewFrame, camer
 		matrix.Float(ld.SwapChain.Extent.Width()),
 		matrix.Float(ld.SwapChain.Extent.Height()),
 	}
+	viewSize := matrix.Vec2{
+		matrix.Float(camera.Width()),
+		matrix.Float(camera.Height()),
+	}
 	if !view.IsDestroyed() {
 		if target := view.Target(); target != nil {
 			w, h := target.Size()
@@ -343,7 +347,7 @@ func (g *GPUDevice) updateGlobalUniformBufferForView(view RenderViewFrame, camer
 		}
 	}
 	viewCamera := renderViewCameraForGlobals(view, camera)
-	ubo := globalShaderDataForCamera(viewCamera, uiCamera, lights, runtime, screenSize)
+	ubo := globalShaderDataForCamera(viewCamera, uiCamera, lights, runtime, screenSize, viewSize)
 	frame := g.Painter.currentFrame
 	state, err := g.ensureGlobalUniformsForView(view.Key())
 	if err != nil {

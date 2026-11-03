@@ -655,9 +655,9 @@ func (a *Area) SetBackdropColor(color matrix.Color) {
 
 func (a *Area) Highlight(ed EditorAreaInterface) {
 	a.assertInitialized()
-	col := matrix.ColorMix(ed.Theme().ColorPanel, matrix.ColorWhite(), 0.07)
+	col := matrix.ColorMix(ed.Theme().ColorPanel, matrix.ColorWhite(), 0.1)
 	a.Panel.SetBorderColor(col, col, col, col)
-	size := float32(math.Max(2, math.Ceil(float64(ed.Theme().SizeTrenchGlobal*0.25))))
+	size := float32(math.Max(3, math.Ceil(float64(ed.Theme().SizeTrenchGlobal*0.25))))
 	a.Panel.SetBorderSize(size, size, size, size)
 }
 
@@ -665,8 +665,23 @@ func (a *Area) Unhighlight(ed EditorAreaInterface) {
 	a.assertInitialized()
 	col := matrix.ColorMix(ed.Theme().ColorPanel, matrix.ColorWhite(), 0.04)
 	a.Panel.SetBorderColor(col, col, col, col)
-	size := float32(math.Max(2, math.Ceil(float64(ed.Theme().SizeTrenchGlobal*0.25))))
+	size := float32(math.Max(3, math.Ceil(float64(ed.Theme().SizeTrenchGlobal*0.25))))
 	a.Panel.SetBorderSize(size, size, size, size)
+}
+
+func (a *Area) SetBackdropTexture(ed EditorAreaInterface, tex *rendering.Texture) {
+	a.assertInitialized()
+	if tex == nil {
+		a.Panel.SetColor(ed.Theme().ColorPanel)
+		a.Panel.RemoveBackground()
+	} else {
+		a.Panel.SetColor(matrix.ColorWhite())
+		a.Panel.SetBackground(tex)
+	}
+}
+
+func (a *Area) HasBackdropTexture() bool {
+	return a.Panel != nil && a.Panel.HasBackground()
 }
 
 func (a *Area) BackdropColor() matrix.Color {

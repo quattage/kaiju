@@ -54,6 +54,16 @@ type RenderViewFrame struct {
 	Destroyed bool
 }
 
+func (view *RenderView) ToFrame() RenderViewFrame {
+	return RenderViewFrame{
+		View:      view,
+		Options:   view.options,
+		Order:     view.order,
+		Enabled:   view.enabled,
+		Destroyed: view.destroyed,
+	}
+}
+
 func newRenderView(options RenderViewOptions, order uint64) *RenderView {
 	options.LayerMask = normalizeRenderLayerMask(options.LayerMask)
 	return &RenderView{
@@ -69,13 +79,7 @@ func newRenderViewFrame(view *RenderView) RenderViewFrame {
 	}
 	view.mutex.RLock()
 	defer view.mutex.RUnlock()
-	return RenderViewFrame{
-		View:      view,
-		Options:   view.options,
-		Order:     view.order,
-		Enabled:   view.enabled,
-		Destroyed: view.destroyed,
-	}
+	return view.ToFrame()
 }
 
 func (v RenderViewFrame) Name() string {
@@ -107,6 +111,18 @@ func (v *RenderView) Options() RenderViewOptions {
 	v.mutex.RLock()
 	defer v.mutex.RUnlock()
 	return v.options
+}
+
+func (v *RenderView) IncludeLayer(mask RenderLayerMask) {
+	v.mutex.RLock()
+	defer v.mutex.RUnlock()
+	v.options.LayerMask |= mask
+}
+
+func (v *RenderView) ExcludeLayer(mask RenderLayerMask) {
+	v.mutex.RLock()
+	defer v.mutex.RUnlock()
+	v.options.LayerMask &^= mask
 }
 
 func (v *RenderView) Target() *RenderTarget {

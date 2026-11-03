@@ -38,7 +38,7 @@ type GlobalShaderData struct {
 	LightInfos            [MaxLocalLights]GPULightInfo
 }
 
-func globalShaderDataForCamera(camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, screenSize matrix.Vec2) GlobalShaderData {
+func globalShaderDataForCamera(camera cameras.Camera, uiCamera cameras.Camera, lights LightsForRender, runtime float32, screenSize matrix.Vec2, viewSize matrix.Vec2) GlobalShaderData {
 	ubo := GlobalShaderData{
 		View:         matrix.Mat4Identity(),
 		Projection:   matrix.Mat4Identity(),

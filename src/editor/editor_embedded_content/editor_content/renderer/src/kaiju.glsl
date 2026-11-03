@@ -1,6 +1,9 @@
+
 #define LOCATION_HEAD  8
 #define LOCATION_START LOCATION_HEAD + 4
 #define PI             3.14159265359
+#define FLT_NAN uintBitsToFloat(0x7FC00000u)
+#define FLT_MAX intBitsToFloat(2139095039)
 #define CUBEMAP_SIDES  6
 
 #ifndef MAX_JOINTS
@@ -45,8 +48,6 @@
 	#define FRAG_INOUT out
 #elif defined(TESS_CONTROL_SHADER) || defined(TESS_EVALUATION_SHADER)
 	#define FRAG_INOUT out
-#else
-	#error "FRAG_INOUT can only be used in vertex, fragment, or tessellation shaders"
 #endif
 
 #ifdef SAMPLER_COUNT
@@ -614,4 +615,24 @@ vec3 vec3Round(vec3 v) {
 
 vec4 vec4Round(vec4 v) {
 	return vec4(round(v.x), round(v.y), round(v.z), round(v.w));
+}
+
+bool isApprox(float a, float b, const float eps) {
+	return abs(a - b) < eps;
+}
+
+bool vec2IsApprox(vec2 a, vec2 b, const float eps) {
+	return isApprox(a.x, b.x, eps) && isApprox(a.y, b.y, eps);
+}
+
+bool vec3IsApprox(vec3 a, vec3 b, const float eps) {
+	return isApprox(a.x, b.x, eps) && isApprox(a.y, b.y, eps) && isApprox(a.z, b.z, eps);
+}
+
+bool vec4IsApprox(vec4 a, vec4 b, const float eps) {
+	return isApprox(a.x, b.x, eps) && isApprox(a.y, b.y, eps) && isApprox(a.z, b.z, eps) && isApprox(a.w, b.w, eps);
+}
+
+bool hasFlag(uint flag, uint val) {
+	return (flag & val) != 0;
 }
