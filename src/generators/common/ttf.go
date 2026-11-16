@@ -39,7 +39,7 @@ func MSDFAtlasGenPath() string {
 }
 
 func WebfontGenPath() string {
-	name := fmt.Sprintf("webfont-generator-%s-%s", runtime.GOOS, runtime.GOARCH)
+	name := fmt.Sprintf("webfont-ttf-gen-%s-%s", runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}

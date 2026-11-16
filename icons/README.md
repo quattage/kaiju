@@ -1,0 +1,1 @@
+.SVG files placed in this directory are rendered into the [KaijuIcons-Regular](../src/editor/editor_embedded_content/editor_content/fonts) SDF atlas. Run the [Icon Generator](../src/generators/svg-msdf/main.go) build configuration in VSCode to invoke this workflow.
