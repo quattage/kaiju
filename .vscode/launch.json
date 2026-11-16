@@ -15,19 +15,23 @@
 			"env": {
 				"CGO_ENABLED": "1",
 			}
-		}, {
+		},
+		{
 			"name": "Trace Editor",
 			"type": "go",
 			"request": "launch",
 			"mode": "auto",
 			"program": "${workspaceFolder}/src",
 			"cwd": "${workspaceFolder}",
-			"args": ["-trace"],
+			"args": [
+				"-trace"
+			],
 			"buildFlags": "-tags=debug,editor,filedrop,rawsrc",
 			"env": {
 				"CGO_ENABLED": "1",
 			}
-		}, {
+		},
+		{
 			"name": "Editor Release",
 			"type": "go",
 			"request": "launch",
@@ -38,7 +42,8 @@
 			"env": {
 				"CGO_ENABLED": "1",
 			}
-		}, {
+		},
+		{
 			"name": "Raw Game",
 			"type": "go",
 			"request": "launch",
@@ -48,7 +53,8 @@
 			"env": {
 				"CGO_ENABLED": "1",
 			}
-		}, {
+		},
+		{
 			"name": "Documentation Generator",
 			"type": "go",
 			"request": "launch",
@@ -59,7 +65,8 @@
 			"env": {
 				"CGO_ENABLED": "1",
 			}
-		}, {
+		},
+		{
 			"name": "Copy Headers",
 			"type": "go",
 			"request": "launch",
@@ -70,7 +77,8 @@
 			"env": {
 				"CGO_ENABLED": "1",
 			}
-		}, {
+		},
+		{
 			"name": "Debug Build Android",
 			"type": "go",
 			"request": "launch",
@@ -93,7 +101,8 @@
 			"env": {
 				"CGO_ENABLED": "1",
 			}
-		}, {
+		},
+		{
 			"name": "Integration Test",
 			"type": "go",
 			"request": "launch",
@@ -107,6 +116,18 @@
 			"env": {
 				"CGO_ENABLED": "1",
 			}
-		}
+		},
+		{
+			"name": "Icon Generator",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/src/generators/svg-msdf/main.go",
+			"cwd": "${workspaceFolder}/src",
+			"buildFlags": "-tags=generator",
+			"env": {
+				"CGO_ENABLED": "1",
+			}
+		},
 	]
 }

@@ -15,6 +15,7 @@ import (
 	"kaijuengine.com/build"
 	"kaijuengine.com/editor/editor_embedded_content"
 	"kaijuengine.com/engine"
+
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/systems/console"
 	"kaijuengine.com/platform/profiler/tracing"
@@ -40,8 +41,10 @@ func (EditorGame) Launch(host *engine.Host) {
 		host:                   host,
 		sessionDisabledPlugins: map[string]struct{}{},
 	}
-	ed.logging.Initialize(host, host.LogStream)
-	host.SetGame(ed)
+	// make sure the console is subscribed early so the user can scroll up
+	// to view early slogs
+	console.For(ed.host)
+	ed.host.SetGame(ed)
 	if err := ed.settings.Load(); err != nil {
 		slog.Error("failed to load the settings for the editor", "error", err)
 	}
@@ -83,12 +86,4 @@ func (EditorGame) Launch(host *engine.Host) {
 		// that owns the resolution flow and calls onResolved itself.
 		ed.validateCompiledPlugins(ed.lateLoadUI)
 	})
-	if build.Debug {
-		console.For(host).AddCommand("showlods",
-			"Spawns all of the selected mesh's LOD meshes beside it",
-			func(h *engine.Host, arg string) string {
-				// return ed.StageWorkspace().ShowLODs()
-				return ""
-			})
-	}
 }

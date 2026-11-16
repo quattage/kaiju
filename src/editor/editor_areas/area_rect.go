@@ -25,7 +25,7 @@ func (a *Area) GetWidth() float32 {
 		return a.childA.GetWidth()
 	}
 	if a.IsFunctional() {
-		return a.Panel.Base().Entity().Transform.Scale().X()
+		return a.panel.Base().Entity().Transform.Scale().X()
 	}
 	return 0
 }
@@ -41,7 +41,7 @@ func (a *Area) GetHeight() float32 {
 		return a.childA.GetHeight()
 	}
 	if a.IsFunctional() {
-		return a.Panel.Base().Entity().Transform.Scale().Y()
+		return a.panel.Base().Entity().Transform.Scale().Y()
 	}
 	return 0
 }
@@ -57,7 +57,7 @@ func (a *Area) GetPosition() matrix.Vec2 {
 		// The panel backing the Area should never have any ancestor UI element.
 		// Misuse of the API may allow this to occur, so this may need to be
 		// addressed at some point in the future.
-		return a.Panel.Base().Layout().Offset()
+		return a.panel.Base().Layout().Offset()
 	}
 	return matrix.Vec2Zero()
 }

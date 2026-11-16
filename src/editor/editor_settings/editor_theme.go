@@ -52,6 +52,15 @@ type WorkspaceTheme struct {
 	SizeTextGlobal     float32
 	SizeRadiusGlobal   float32
 	SizeTrenchGlobal   float32
+
+	ColorGrid  matrix.Color
+	ColorAxisX matrix.Color
+	ColorAxisY matrix.Color
+	ColorAxisZ matrix.Color
+
+	ColorConsoleInfo  matrix.Color
+	ColorConsoleWarn  matrix.Color
+	ColorConsoleError matrix.Color
 }
 
 func (wt *WorkspaceTheme) setDefaults() {
@@ -65,7 +74,14 @@ func (wt *WorkspaceTheme) setDefaults() {
 	wt.SizeContextBar = 24
 	wt.SizeTextGlobal = 12
 	wt.SizeRadiusGlobal = 8
-	wt.SizeTrenchGlobal = 3
+	wt.SizeTrenchGlobal = 1
+	wt.ColorGrid = matrix.NewColor8(143, 153, 152, 128).AsColor()
+	wt.ColorAxisX = matrix.NewColor8(239, 40, 90, 185).AsColor()
+	wt.ColorAxisY = matrix.NewColor8(113, 239, 67, 185).AsColor()
+	wt.ColorAxisZ = matrix.NewColor8(32, 21, 239, 185).AsColor()
+	wt.ColorConsoleInfo = matrix.NewColor8(152, 192, 128, 255).AsColor()
+	wt.ColorConsoleWarn = matrix.NewColor8(219, 188, 127, 255).AsColor()
+	wt.ColorConsoleError = matrix.NewColor8(230, 70, 80, 255).AsColor()
 }
 
 // MarkThemeCSSDirty discards the current theme style sheet so that it can be

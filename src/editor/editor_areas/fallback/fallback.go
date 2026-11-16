@@ -31,7 +31,7 @@ func init() {
 	editor_areas.Register(editor_areas.AreaType{
 		Key:            klib.NewKey("com.kaiju.area_fallback", "Fallback"),
 		HandlerFactory: func() editor_areas.AreaHandlerInterface { return &Handler{} },
-		Flags:          editor_areas.AreaCapabilityFlagDockable | editor_areas.AreaCapabilityFlagDraggable | editor_areas.AreaCapabilityFlagOverlayable,
+		Flags:          editor_areas.AreaCapabilityFlagDockable | editor_areas.AreaCapabilityFlagOverlayable,
 	})
 }
 
@@ -39,13 +39,13 @@ func init() {
 // serialize the failed ID instead so that the Workspace could be recovered
 // completely in the event that the developer breaks and then fixes something
 // between restarts.
-
 type Handler struct {
 	FailedID string
+	Reason   string
 }
 
 func (h *Handler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
-	area.AnnotateCenter(ed, "test")
+	area.HTMLContainer(ed, "fallback.html", h, nil)
 }
 
 func (h *Handler) Close(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {

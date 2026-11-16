@@ -62,6 +62,7 @@ func (h *StageViewHandler) GetViewportCamera() *viewport.ViewportCamera {
 func (h *StageViewHandler) Open(area *editor_areas.Area, ed editor_areas.EditorAreaInterface) {
 	h.overlays = rendering.NewDrawings()
 	h.setupGrid(ed)
+	h.UpdateSettings(ed)
 	h.setupCamera(ed)
 }
 
@@ -112,12 +113,14 @@ func (h *StageViewHandler) syncViewportRect(ed editor_areas.EditorAreaInterface,
 		slog.Error("Failed to load stage view render target", "error", err)
 		return
 	}
-	if tex != nil && tex != area.Panel.Background() {
+	if tex != nil && tex != area.GetPanel().Background() {
 		area.SetBackdropTexture(ed, tex)
 	}
 }
 
+// constantly updates the things that change continuously
 func (h *StageViewHandler) syncGridShaderData(cam cameras.Camera) {
+	defer tracing.NewRegion("StageViewHandler.syncGridShaderData")
 	if h.gridShader == nil {
 		return
 	}
@@ -133,12 +136,26 @@ func (h *StageViewHandler) syncGridShaderData(cam cameras.Camera) {
 	} else {
 		h.gridShader.FarClip = cam.FarPlane()
 		h.gridShader.ClipRect = matrix.Vec4{h.gridShader.FarClip, h.gridShader.FarClip, 0, 0}
-		height := klib.FAbs(cam.Position().Y())
-		forward := klib.FAbs(cam.Forward().Y())
+		height := matrix.Abs(cam.Position().Y())
+		forward := matrix.Abs(cam.Forward().Y())
 		intersect := height / max(forward, 1e-6)
 		dist = matrix.Lerp(intersect, height, 1-forward)
 	}
 	h.gridShader.CalculateLevel(dist)
+}
+
+// Updates the visual settings relating to the stage view that aren't expected
+// to change frequently, such as color and thickness of grid lines
+func (h *StageViewHandler) UpdateSettings(ed editor_areas.EditorAreaInterface) {
+	// TODO there should probably be an API feature for this so that all areas
+	// can implicitly respond to updates to user theme changes without bespoke
+	// implementations like this
+	h.gridShader.Colors = [4]matrix.Color{
+		ed.Theme().ColorGrid,
+		ed.Theme().ColorAxisX,
+		ed.Theme().ColorAxisY,
+		ed.Theme().ColorAxisZ,
+	}
 }
 
 func (h *StageViewHandler) setupCamera(ed editor_areas.EditorAreaInterface) {

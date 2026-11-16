@@ -14,7 +14,6 @@ import (
 	"kaijuengine.com/editor/editor_action"
 	"kaijuengine.com/editor/editor_areas"
 	"kaijuengine.com/editor/editor_events"
-	"kaijuengine.com/editor/editor_logging"
 	"kaijuengine.com/editor/editor_plugin"
 	"kaijuengine.com/editor/editor_settings"
 	"kaijuengine.com/editor/memento"
@@ -22,6 +21,7 @@ import (
 	"kaijuengine.com/editor/project/project_database/content_previews"
 	"kaijuengine.com/editor/webapi"
 	"kaijuengine.com/engine"
+	"kaijuengine.com/engine/systems/console"
 	"kaijuengine.com/engine/systems/events"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/klib"
@@ -31,6 +31,7 @@ import (
 	"kaijuengine.com/rendering/textures"
 
 	// we import the default areas so that their initializers are hit
+	_ "kaijuengine.com/editor/editor_areas/console"
 	_ "kaijuengine.com/editor/editor_areas/content_browser"
 	_ "kaijuengine.com/editor/editor_areas/example"
 	_ "kaijuengine.com/editor/editor_areas/fallback"
@@ -52,7 +53,6 @@ type Editor struct {
 	settings       editor_settings.Settings
 	theme          editor_settings.WorkspaceTheme
 	project        project.Project
-	logging        editor_logging.Logging
 	history        memento.History
 	events         editor_events.EditorEvents
 	workspace      editor_areas.WorkspaceManager
@@ -119,6 +119,7 @@ func (ed *Editor) UpdateSettings() {
 		slog.Error("failed to save the editor settings", "error", err)
 		return
 	}
+	console.For(ed.host).SetSize(uint16(ed.settings.ConsoleScrollback))
 	slog.Info("Updated editor settings")
 	ed.updateWebAPI()
 }

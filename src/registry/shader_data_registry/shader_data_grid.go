@@ -43,6 +43,7 @@ type ShaderDataGrid struct {
 	GridLineCount            uint32
 	ClipRect                 matrix.Vec4
 	Steps                    [8]matrix.Vec4
+	Colors                   [4]matrix.Color
 }
 
 func (sd *ShaderDataGrid) SetDefaults() {
@@ -55,9 +56,13 @@ func (sd *ShaderDataGrid) SetDefaults() {
 		sd.Steps[i] = matrix.Vec4{value, value, value, 0}
 		value *= 10
 	}
+
 }
 
 func (sd ShaderDataGrid) VertexCount() uint32 {
+	// 4 vertex terminals * 3 grid levels * x total lines
+	// the 3 here always must match the OVERLAY_GRID_STEPS_DRAW constant
+	// defined in grid_shared.glsl
 	return 4 * 3 * sd.GridLineCount
 }
 

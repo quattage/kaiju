@@ -166,7 +166,7 @@ func swapRB(pixels []byte) {
 }
 
 func (g *GPUDevice) createGlobalUniforms() error {
-	slog.Info("creating global uniform buffers")
+	slog.Debug("Creating global uniform buffers")
 	g.globalUniforms = make(map[*RenderView]*globalUniformBufferSet)
 	state, err := g.createGlobalUniformBufferSet()
 	if err != nil {

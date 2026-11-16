@@ -3,7 +3,8 @@
     values are forwarded to layout engine at runtime and accessible here in CSS
 */
 
-/* https://fonts.google.com/icons?icon.set=Material+Icons&icon.style=Filled */
+/* https://fonts.google.com
+/icons?icon.set=Material+Icons&icon.style=Filled */
 
 body {
     display: flex;
@@ -67,19 +68,19 @@ button:hover {
 button.important {
     color: white;
     background-color: var(--ed-color-accent-passive);
-    border: 0px black
+    border: none;
 }
 
 button.important:hover {
     color: white;
     background-color: color-mix(in srgb var(--ed-color-accent-passive) black 75%);
-    border: 0px black
+    border: none;
 }
 
 button.important:active {
     color: white;
     background-color: var(--ed-color-accent-passive);
-    border: 0px black
+    border: none;
 }
 
 button.disabled,
@@ -90,8 +91,11 @@ button.disabled:active {
     background-color: color-mix(in srgb var(--ed-color-background) gray 90%);
 }
 
-button.icon {
+button.small {
+    padding: 1px;
+    margin: 1px;
     text-align: center;
+    align-items: center;
 }
 
 div.important {
@@ -115,21 +119,22 @@ span .silent {
     left: 20em;
 }
 
-div .column {
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-    align-items: start;
-    align-content: start;
-    padding: 0.1em;
-}
-
+div.row,
 div .row {
     display: flex;
     flex-direction: row;
-    text-align: left;
     align-items: start;
-    align-content: start;
+    justify-content: flex-start;
+    padding: 0.1em;
+}
+
+div.column,
+div .column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     padding: 0.1em;
 }
 
@@ -212,4 +217,16 @@ button.tableSectionButton:hover {
     border: none;
     background-color: color-mix(in srgb var(--ed-color-panel) gray 95%);
     padding: 0px 16px;
+}
+
+.codeblock {
+    font-family: "JetBrainsMono-Regular";
+    background-color: color-mix(in srgb var(--ed-color-panel) black 75%);
+    padding: 1em;
+    border-radius: 1px;
+}
+
+.where {
+    background-color: transparent;
+    border: 3px solid red;
 }

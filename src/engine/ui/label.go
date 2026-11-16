@@ -181,8 +181,8 @@ func (label *Label) renderText() {
 		maxWidth := label.MaxWidth()
 		if label.entity.Parent != nil && !matrix.Approx(label.entity.Transform.Scale().X(), 0) {
 			pl := &FirstPanelOnEntity(label.entity.Parent).layout
-			contentWidth := label.entity.Parent.Transform.WorldScale().X() -
-				pl.padding.Horizontal() - pl.border.Horizontal()
+			basisWidth := label.entity.Parent.Transform.WorldScale().X()
+			contentWidth := basisWidth - pl.padding.Horizontal() - pl.border.Horizontal()
 			if contentWidth > 0 {
 				if ld.overrideMaxWidth <= 0 {
 					// Re-anchor after growing: a transform's position is its
@@ -675,6 +675,10 @@ func (label *Label) Measure() matrix.Vec2 {
 	} else {
 		return label.measure(matrix.FloatMax)
 	}
+}
+
+func (label *Label) MeasureAtWidth(width float32) matrix.Vec2 {
+	return label.measure(width)
 }
 
 func (label *Label) Clone(to *Label) {

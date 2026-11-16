@@ -60,16 +60,12 @@ const (
 	// isn't marked as discoverable, the only way it may be opened is via
 	// editor or plugin code.
 	AreaCapabilityFlagDiscoverable
-	// For standard areas, Draggable indicates that areas using this
-	// AreaType can have their bounds adjusted by dragging with the mouse.
-	// For Overlays, this flag indicates that the entire overlay Area and its
-	// contents can be moved by dragging its header with the mouse.
-	AreaCapabilityFlagDraggable
 )
 
 type BottomRightStylizer struct{ ui.BasicStylizer }
 type BottomLeftStylizer struct{ ui.BasicStylizer }
 type CenterStylizer struct{ ui.BasicStylizer }
+type MaxWidthStylizer struct{ ui.BasicStylizer }
 
 type ContextBarElement struct {
 	owner  *Area
@@ -77,7 +73,7 @@ type ContextBarElement struct {
 	Panel  *ui.Panel
 }
 
-// A hitbox used for cursor interactions for resizing Areas
+// A hitbox used for cursor interactions when resizing Areas
 type Gutter struct {
 	composite                       *Area
 	posx, posy, width, height, dist float32
@@ -115,10 +111,20 @@ func (at *AreaType) String() string {
 
 type Container struct {
 	owner *Area
-	// This Panel is managed by the Container and its helpers. It shouldn't be
-	// reassigned or reparented.
-	Panel *ui.Panel
+	panel *ui.Panel
 	doc   *document.Document
+}
+
+func (c Container) GetPanel() *ui.Panel {
+	return c.panel
+}
+
+func (c Container) GetOwner() *Area {
+	return c.owner
+}
+
+func (c Container) GetDocument() *document.Document {
+	return c.doc
 }
 
 // The Area is the fundamental core of what Kaiju presents to the end user.
@@ -162,7 +168,7 @@ func (a *Area) IsComposite() bool {
 // Returns true if this Area is functional. Functional Areas are responsible for
 // presenting UI to the user.
 func (a *Area) IsFunctional() bool {
-	return a.areaType != nil && a.childA == nil && a.childB == nil && a.manager != nil && a.Panel != nil
+	return a.areaType != nil && a.childA == nil && a.childB == nil && a.manager != nil && a.panel != nil
 }
 
 // Returns true if this Area is the MainArea, that is, it is the top-level
@@ -194,9 +200,13 @@ func (a *Area) Disable() {
 }
 
 func (a *Area) SetEnabled(enabled bool) {
-	if a.Panel != nil {
-		a.Panel.Base().Entity().SetActive(enabled)
+	if a.panel != nil {
+		a.panel.Base().Entity().SetActive(enabled)
 	}
+}
+
+func (a *Area) GetManager() *ui.Manager {
+	return a.manager
 }
 
 func (a *Area) GetOwner() *Area {
@@ -262,18 +272,35 @@ func newBlankArea(areaType *AreaType) *Area {
 func (a *Area) open(wm *WorkspaceManager, width, height float32) {
 	a.manager = &ui.Manager{}
 	a.manager.Init(wm.editor.Host())
-	a.Panel = a.manager.Add().ToPanel()
-	a.Panel.Init(nil, ui.ElementTypePanel)
+	a.panel = a.manager.Add().ToPanel()
+	a.panel.Init(nil, ui.ElementTypePanel)
 	a.SetBackdropColor(wm.editor.Theme().ColorPanel)
-	a.Panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	a.Panel.Base().Layout().SetOffset(0, 0)
-	a.Panel.Base().Layout().Scale(float32(width), float32(height))
-	a.Panel.DontFitContent()
+	a.panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
+	a.panel.Base().Layout().SetOffset(0, 0)
+	a.panel.Base().Layout().Scale(float32(width), float32(height))
+	a.panel.DontFitContent()
 	rad := wm.Editor().Theme().SizeRadiusGlobal
-	a.Panel.SetBorderRadius(rad, rad, rad, rad)
+	a.panel.SetBorderRadius(rad, rad, rad, rad)
 	a.Unhighlight(wm.editor)
+	a.setupTemplate(wm)
 	a.GetHandler().Open(a, wm.editor)
-	a.Panel.Base().SetDirty(ui.DirtyTypeGenerated)
+	a.panel.Base().SetDirty(ui.DirtyTypeGenerated)
+}
+
+func (a *Area) setupTemplate(wm *WorkspaceManager) {
+	if a.IsOverlay() {
+		return
+	}
+	css := wm.editor.Theme().GetGlobalCSS(wm.editor.Host())
+	file, err := wm.editor.Host().AssetDatabase().ReadText("areaTemplate.html")
+	if err != nil {
+		slog.Error(fmt.Sprintf("Failed to open area '%s' - areaTemplate.html! couldn't be opened! (%s)", a.areaType.Key.ID(), err))
+	}
+	docRoot := a.MakeDocumentRoot()
+	docRoot.UI.Layout().SetPositioning(ui.PositioningAbsolute)
+	docRoot.Data = a.areaType.Key.ID() + ".template"
+	docRoot.UI.Layout().SetZ(a.panel.Base().Layout().Z() + 0.1)
+	markup.DocumentFromHTMLString(a.manager, file, css, nil, nil, docRoot)
 }
 
 func (a *Area) closeAndInvalidate(ed EditorAreaInterface) {
@@ -287,7 +314,7 @@ func (a *Area) closeAndInvalidate(ed EditorAreaInterface) {
 func (a *Area) resetFields() {
 	a.areaType = nil
 	a.manager = nil
-	a.Panel = nil
+	a.panel = nil
 	a.owner = nil
 	a.childA = nil
 	a.childB = nil
@@ -309,10 +336,10 @@ func (a *Area) resetFields() {
 // placement.
 func (a *Area) StretchFlexColumn() {
 	a.assertInitialized()
-	a.Panel.SetFlex()
-	a.Panel.SetFlexDirection(ui.FlexDirectionColumn)
-	a.Panel.SetFlexAlignItems(ui.FlexAlignStretch)
-	a.Panel.SetFlexJustify(ui.FlexJustifySpaceBetween)
+	a.panel.SetFlex()
+	a.panel.SetFlexDirection(ui.FlexDirectionColumn)
+	a.panel.SetFlexAlignItems(ui.FlexAlignStretch)
+	a.panel.SetFlexJustify(ui.FlexJustifySpaceBetween)
 }
 
 // MakeDocumentRoot creates a new, blank Element and configures its panel.
@@ -325,9 +352,9 @@ func (a *Area) MakeDocumentRoot() *document.Element {
 	docRoot.Init(nil, ui.ElementTypePanel)
 	docRoot.AllowClickThrough()
 	docRoot.DontFitContent()
-	docRoot.Base().Layout().Stylizer = ui.StretchCenterStylizer{Parent: weak.Make(a.Panel.Base())}
-	docRoot.Base().Layout().SetZ(a.Panel.Base().Layout().Z() + 0.1)
-	a.Panel.AddChild(docRoot.Base())
+	docRoot.Base().Layout().Stylizer = ui.StretchCenterStylizer{Parent: weak.Make(a.panel.Base())}
+	docRoot.Base().Layout().SetZ(a.panel.Base().Layout().Z() + 0.001)
+	a.panel.AddChild(docRoot.Base())
 	return &document.Element{
 		Type:     html.ElementNode,
 		Data:     a.areaType.Key.ID() + ".root",
@@ -363,34 +390,46 @@ func imagePanel(owner *ui.Panel, manager *ui.Manager, ed EditorAreaInterface, te
 // root panel.
 func (a *Area) BackgroundImage(editor EditorAreaInterface, texture string, widthRatio float32) *Container {
 	a.assertInitialized()
-	panel := imagePanel(a.Panel, a.manager, editor, texture, widthRatio, false)
-	a.Panel.AddChild(panel.Base())
-	panel.InheritBorderRadiusFrom(a.Panel)
-	return &Container{owner: a, Panel: panel}
+	panel := imagePanel(a.panel, a.manager, editor, texture, widthRatio, false)
+	a.panel.AddChild(panel.Base())
+	panel.InheritBorderRadiusFrom(a.panel)
+	return &Container{owner: a, panel: panel}
 }
 
 // LogoImage is a helper for drawing a floating, alpha-enabled logo in the top left of this Area.
 func (a *Area) LogoImage(ed EditorAreaInterface, texture string, widthRatio float32) *Container {
 	a.assertInitialized()
-	panel := imagePanel(a.Panel, a.manager, ed, texture, widthRatio, true)
+	panel := imagePanel(a.panel, a.manager, ed, texture, widthRatio, true)
 	panel.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	a.Panel.AddChild(panel.Base())
-	return &Container{owner: a, Panel: panel}
+	a.panel.AddChild(panel.Base())
+	return &Container{owner: a, panel: panel}
 }
 
 func (a *Area) EmptyContainer(editor EditorAreaInterface) *Container {
 	a.assertInitialized()
 	panel := a.manager.Add().ToPanel()
 	panel.Init(nil, ui.ElementTypePanel)
-	a.Panel.AddChild(panel.Base())
-	size := a.Panel.Base().Layout().PixelSize()
+	a.panel.AddChild(panel.Base())
+	size := a.panel.Base().Layout().PixelSize()
 	panel.Base().Layout().Scale(size.X(), size.Y())
 	panel.Base().Layout().SetPositioning(ui.PositioningRelative)
 	panel.Base().Layout().SetOffset(0, 0)
 	panel.SetColor(editor.Theme().ColorPanel)
 	panel.DontFitContent()
-	panel.Base().Layout().SetZ(a.Panel.Base().Layout().Z() + 0.1)
-	return &Container{owner: a, Panel: panel}
+	panel.Base().Layout().SetZ(a.panel.Base().Layout().Z() + 0.001)
+	return &Container{owner: a, panel: panel}
+}
+
+func (a *Area) VirtualList(editor EditorAreaInterface) *ui.VirtualList {
+	a.assertInitialized()
+	vl := a.manager.Add().ToVirtualList()
+	vl.Init()
+	size := a.panel.Base().Layout().PixelSize()
+	vl.Base().Layout().Scale(size.X(), size.Y())
+	vl.Base().Layout().SetPositioning(ui.PositioningRelative)
+	vl.Base().Layout().SetOffset(0, 0)
+	vl.Base().Layout().SetZ(a.panel.Base().Layout().Z() + 0.001)
+	return vl
 }
 
 // ContextBar draws the common row-of-rows style ContextBar used everywhere in the Kaiju UI.
@@ -405,18 +444,18 @@ func (a *Area) ContextBar(ed EditorAreaInterface) ContextBarElement {
 	cbContent.SetFlex()
 	cbContent.SetFlexAlignContent(ui.FlexAlignStretch)
 	cbContent.SetFlexDirection(ui.FlexDirectionRow)
-	cbContent.Base().Layout().SetZ(a.Panel.Base().Layout().Z() + 1)
-	cbContent.Base().Layout().Scale(a.Panel.Base().Layout().PixelSize().X(), ed.Theme().SizeContextBar)
+	cbContent.Base().Layout().SetZ(a.panel.Base().Layout().Z() + 1)
+	cbContent.Base().Layout().Scale(a.panel.Base().Layout().PixelSize().X(), ed.Theme().SizeContextBar)
 	cbContent.SetColor(ed.Theme().ColorContextBar)
-	a.Panel.AddChild(cbContent.Base())
+	a.panel.AddChild(cbContent.Base())
 	output := ContextBarElement{owner: a, Panel: cbContent}
 	output.fields[LeftField] = output.newField(ui.FlexJustifyStart, ui.FlexAlignStart, ui.FlexJustifySelfStart)
 	output.fields[CenterField] = output.newField(ui.FlexJustifyCenter, ui.FlexAlignCenter, ui.FlexJustifySelfCenter)
 	output.fields[RightField] = output.newField(ui.FlexJustifyEnd, ui.FlexAlignEnd, ui.FlexJustifySelfEnd)
 	for _, field := range output.fields {
-		cbContent.AddChild(field.Panel.Base())
+		cbContent.AddChild(field.panel.Base())
 	}
-	output.Panel.InheritBorderRadiusFrom(output.owner.Panel)
+	output.Panel.InheritBorderRadiusFrom(output.owner.panel)
 	return output
 }
 
@@ -424,18 +463,41 @@ func (a *Area) ContextBar(ed EditorAreaInterface) ContextBarElement {
 // path. The resulting document is given the global CSS for the current editor
 // theme, configured for this Area, and added to it. This is the only call you
 // should need to get UI to appear in an area.
-func (a *Area) HTMLContainer(ed EditorAreaInterface, relativePath string, withData any, functions ...func(*document.Element)) *Container {
+func (a *Area) HTMLContainer(ed EditorAreaInterface, relativePath string, withData any, functions ...func(*document.Element)) (*Container, error) {
 	css := ed.Theme().GetGlobalCSS(ed.Host())
 	doc, err := ed.Host().AssetDatabase().ReadText(relativePath)
 	if err != nil {
-		slog.Error(fmt.Sprintf("Failed to read file '%s'", relativePath), "error", err)
-		return &Container{owner: a, doc: nil, Panel: nil}
+		return &Container{owner: a, doc: nil, panel: nil}, err
 	}
 	slog.Debug(fmt.Sprintf("Opening document '%s'", relativePath))
 	docRoot := a.MakeDocumentRoot()
 	if len(functions) <= 0 {
 		return a.applyDocument(docRoot.UIPanel, markup.DocumentFromHTMLString(a.manager, doc, css, withData, nil, docRoot))
 	}
+	var funcMap map[string]func(*document.Element) = mapFunctions(functions)
+	return a.applyDocument(docRoot.UIPanel, markup.DocumentFromHTMLString(a.manager, doc, css, withData, funcMap, docRoot))
+}
+
+// LoadHTML loads and returns the HTML at the provided filepath without
+// modyfing this Area's layout. This can be more flexible than [HTMLContainer()]
+// if you need some procedural functionality. For example, the terminal uses
+// this method to load its row template, which is duplicated by the terminal's
+// handler for each row that's displayed.
+func (a *Area) LoadHTML(ed EditorAreaInterface, relativePath string, withData any, functions ...func(*document.Element)) (*document.Document, error) {
+	css := ed.Theme().GetGlobalCSS(ed.Host())
+	doc, err := ed.Host().AssetDatabase().ReadText(relativePath)
+	if err != nil {
+		return nil, err
+	}
+	slog.Debug(fmt.Sprintf("Opening document '%s'", relativePath))
+	if len(functions) <= 0 {
+		return markup.DocumentFromHTMLString(a.manager, doc, css, withData, nil, nil), nil
+	}
+	var funcMap map[string]func(*document.Element) = mapFunctions(functions)
+	return markup.DocumentFromHTMLString(a.manager, doc, css, withData, funcMap, nil), nil
+}
+
+func mapFunctions(functions []func(*document.Element)) map[string]func(*document.Element) {
 	var funcMap map[string]func(*document.Element) = make(map[string]func(*document.Element))
 	for x, member := range functions {
 		if member == nil {
@@ -448,27 +510,18 @@ func (a *Area) HTMLContainer(ed EditorAreaInterface, relativePath string, withDa
 		slog.Debug(fmt.Sprintf("Mapped HTML function '%s'", fnName))
 		funcMap[fnName] = member
 	}
-	return a.applyDocument(docRoot.UIPanel, markup.DocumentFromHTMLString(a.manager, doc, css, withData, funcMap, docRoot))
+	return funcMap
 }
 
-func (a *Area) applyDocument(root *ui.Panel, doc *document.Document) *Container {
+func (a *Area) applyDocument(root *ui.Panel, doc *document.Document) (*Container, error) {
 	if doc == nil || len(doc.Elements) == 0 {
-		slog.Error(fmt.Sprintf(
-			"Couldn't apply HTML document for '%s': no elements",
-			a.areaType.String(),
-		))
-		return &Container{
-			owner: a,
-			doc:   doc,
-			Panel: nil,
-		}
+		return nil, fmt.Errorf("Couldn't apply HTML document for '%s': no elements", a.areaType.String())
 	}
-	output := &Container{
+	return &Container{
 		owner: a,
 		doc:   doc,
-		Panel: root,
-	}
-	return output
+		panel: root,
+	}, nil
 }
 
 func (cb *ContextBarElement) newField(justify ui.FlexJustify, align ui.FlexAlign, justifySelf ui.FlexJustifySelf) *Container {
@@ -481,7 +534,7 @@ func (cb *ContextBarElement) newField(justify ui.FlexJustify, align ui.FlexAlign
 	panel.Base().Layout().SetJustifySelf(justifySelf)
 	panel.SetFlexAlignItems(align)
 	panel.Base().Layout().Scale(0, 0)
-	return &Container{owner: cb.owner, Panel: panel}
+	return &Container{owner: cb.owner, panel: panel}
 }
 
 func (cb *ContextBarElement) Field(field DiscreteFieldRowAlignment) *Container {
@@ -510,7 +563,7 @@ func (c *Container) AnnotateTopLeft(editor EditorAreaInterface, text string) *ui
 	ff := fs * 0.7
 	bg.Base().Layout().SetPadding(ff, fs*0.3, ff, fs*0.3)
 	bg.SetColor(editor.Theme().ColorBackground)
-	bg.Base().Layout().SetZ(c.Panel.Base().Layout().Z() + 0.1)
+	bg.Base().Layout().SetZ(c.panel.Base().Layout().Z() + 0.001)
 	bg.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	content := c.owner.manager.Add().ToLabel()
 	content.Init(text)
@@ -519,7 +572,7 @@ func (c *Container) AnnotateTopLeft(editor EditorAreaInterface, text string) *ui
 	content.EnforceBGColor(editor.Theme().ColorPanel)
 	bg.SetBorderRadius(ff, ff, ff, ff)
 	bg.AddChild(content.Base())
-	c.Panel.AddChild(bg.Base())
+	c.panel.AddChild(bg.Base())
 	return bg
 }
 
@@ -533,7 +586,7 @@ func (c *Container) AnnotateTopRight(ed EditorAreaInterface, text string) *ui.Pa
 	ff := fs * 0.7
 	bg.Base().Layout().SetPadding(ff, fs*0.3, ff, fs*0.3)
 	bg.SetColor(ed.Theme().ColorBackground)
-	bg.Base().Layout().SetZ(c.Panel.Base().Layout().Z() + 0.1)
+	bg.Base().Layout().SetZ(c.panel.Base().Layout().Z() + 0.001)
 	bg.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	content := c.owner.manager.Add().ToLabel()
 	content.Init(text)
@@ -541,11 +594,11 @@ func (c *Container) AnnotateTopRight(ed EditorAreaInterface, text string) *ui.Pa
 	content.SetColor(ed.Theme().ColorTextPassive)
 	content.EnforceBGColor(ed.Theme().ColorBackground)
 	bg.SetBorderRadius(ff, ff, ff, ff)
-	bg.Base().Layout().Stylizer = ui.RightStylizer{Parent: weak.Make(c.Panel.Base())}
+	bg.Base().Layout().Stylizer = ui.RightStylizer{Parent: weak.Make(c.panel.Base())}
 	size := bg.Base().Layout().PixelSize()
 	bg.Base().Layout().SetOffset(-size.X(), size.Y())
 	bg.AddChild(content.Base())
-	c.Panel.AddChild(bg.Base())
+	c.panel.AddChild(bg.Base())
 	return bg
 }
 
@@ -559,7 +612,7 @@ func (c *Container) AnnotateBottomLeft(ed EditorAreaInterface, text string) *ui.
 	ff := fs * 0.7
 	bg.Base().Layout().SetPadding(ff, fs*0.3, ff, fs*0.3)
 	bg.SetColor(ed.Theme().ColorBackground)
-	bg.Base().Layout().SetZ(c.Panel.Base().Layout().Z() + 0.1)
+	bg.Base().Layout().SetZ(c.panel.Base().Layout().Z() + 0.001)
 	bg.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	content := c.owner.manager.Add().ToLabel()
 	content.Init(text)
@@ -567,11 +620,11 @@ func (c *Container) AnnotateBottomLeft(ed EditorAreaInterface, text string) *ui.
 	content.SetColor(ed.Theme().ColorTextPassive)
 	content.EnforceBGColor(ed.Theme().ColorBackground)
 	bg.SetBorderRadius(ff, ff, ff, ff)
-	bg.Base().Layout().Stylizer = BottomLeftStylizer{Parent: weak.Make(c.Panel.Base())}
+	bg.Base().Layout().Stylizer = BottomLeftStylizer{Parent: weak.Make(c.panel.Base())}
 	size := bg.Base().Layout().PixelSize()
 	bg.Base().Layout().SetOffset(size.X(), -size.Y())
 	bg.AddChild(content.Base())
-	c.Panel.AddChild(bg.Base())
+	c.panel.AddChild(bg.Base())
 	return bg
 }
 
@@ -585,7 +638,7 @@ func (c *Container) AnnotateBottomRight(ed EditorAreaInterface, text string) *ui
 	ff := fs * 0.7
 	bg.Base().Layout().SetPadding(ff, fs*0.3, ff, fs*0.3)
 	bg.SetColor(ed.Theme().ColorBackground)
-	bg.Base().Layout().SetZ(c.Panel.Base().Layout().Z() + 0.1)
+	bg.Base().Layout().SetZ(c.panel.Base().Layout().Z() + 0.001)
 	bg.Base().Layout().SetPositioning(ui.PositioningAbsolute)
 	content := c.owner.manager.Add().ToLabel()
 	content.Init(text)
@@ -593,11 +646,11 @@ func (c *Container) AnnotateBottomRight(ed EditorAreaInterface, text string) *ui
 	content.SetColor(ed.Theme().ColorTextPassive)
 	content.EnforceBGColor(ed.Theme().ColorBackground)
 	bg.SetBorderRadius(ff, ff, ff, ff)
-	bg.Base().Layout().Stylizer = BottomRightStylizer{Parent: weak.Make(c.Panel.Base())}
+	bg.Base().Layout().Stylizer = BottomRightStylizer{Parent: weak.Make(c.panel.Base())}
 	size := bg.Base().Layout().PixelSize()
 	bg.Base().Layout().SetOffset(-size.X(), -size.Y())
 	bg.AddChild(content.Base())
-	c.Panel.AddChild(bg.Base())
+	c.panel.AddChild(bg.Base())
 	return bg
 }
 
@@ -607,10 +660,10 @@ func (a *Area) AnnotateCenter(ed EditorAreaInterface, text string) {
 	content.SetFontSize(ed.Theme().SizeTextGlobal * 2)
 	content.SetFontFace(rendering.FontBold)
 	content.SetColor(ed.Theme().ColorTextPassive)
-	a.Panel.AddChild(content.Base())
-	content.Base().Layout().SetZ(a.Panel.Base().Layout().Z() + 0.1)
+	a.panel.AddChild(content.Base())
+	content.Base().Layout().SetZ(a.panel.Base().Layout().Z() + 0.001)
 	content.Base().Layout().SetPositioning(ui.PositioningAbsolute)
-	content.Base().Layout().Stylizer = CenterStylizer{Parent: weak.Make(a.Panel.Base())}
+	content.Base().Layout().Stylizer = CenterStylizer{Parent: weak.Make(a.panel.Base())}
 }
 
 // Creates a transparent-to-black overlay gradient whose darkest band is aligned
@@ -618,16 +671,16 @@ func (a *Area) AnnotateCenter(ed EditorAreaInterface, text string) {
 // styles of the underlying panel and conform to it without affecting the layout
 // of its children.
 func (c *Container) TopFade(editor EditorAreaInterface, darkness, ratio float32) *ui.Panel {
-	ps := c.Panel.Base().Layout().PixelSize()
-	overlay := imagePanel(c.Panel, c.owner.manager, editor, "gradient.png", 1, true)
+	ps := c.panel.Base().Layout().PixelSize()
+	overlay := imagePanel(c.panel, c.owner.manager, editor, "gradient.png", 1, true)
 	overlay.SetColor(matrix.ColorBlack().WithAlpha(darkness))
-	c.Panel.AddChild(overlay.Base())
+	c.panel.AddChild(overlay.Base())
 	height := ps.Y() * ratio
 	overlay.Base().Layout().Scale(ps.X(), height)
 	// we can effectively flip the shadow upside down by sampling the UVs backwards
 	overlay.Base().ShaderData().Size2D = matrix.Vec4{0, 0, ps.X(), ps.Y()}
 	overlay.Base().ShaderData().UVs = matrix.Vec4{0, 1, 1, -1}
-	overlay.InheritBorderRadiusFrom(c.Panel)
+	overlay.InheritBorderRadiusFrom(c.panel)
 	return overlay
 }
 
@@ -636,66 +689,66 @@ func (c *Container) TopFade(editor EditorAreaInterface, darkness, ratio float32)
 // styles of the underlying panel and conform to it without affecting the layout
 // of its children.
 func (c *Container) BottomFade(editor EditorAreaInterface, darkness, ratio float32) *ui.Panel {
-	ps := c.Panel.Base().Layout().PixelSize()
-	overlay := imagePanel(c.Panel, c.owner.manager, editor, "gradient.png", 1, true)
+	ps := c.panel.Base().Layout().PixelSize()
+	overlay := imagePanel(c.panel, c.owner.manager, editor, "gradient.png", 1, true)
 	overlay.SetColor(matrix.ColorBlack().WithAlpha(darkness))
-	c.Panel.AddChild(overlay.Base())
+	c.panel.AddChild(overlay.Base())
 	height := ps.Y() * ratio
 	overlay.Base().Layout().Scale(ps.X(), height)
 	overlay.Base().Layout().SetOffset(0, ps.Y()-height)
 	overlay.Base().ShaderData().Size2D = matrix.Vec4{0, 0, ps.X(), ps.Y()}
-	overlay.InheritBorderRadiusFrom(c.Panel)
+	overlay.InheritBorderRadiusFrom(c.panel)
 	return overlay
 }
 
 func (a *Area) SetBackdropColor(color matrix.Color) {
 	a.assertInitialized()
-	a.Panel.SetColor(color)
+	a.panel.SetColor(color)
 }
 
 func (a *Area) Highlight(ed EditorAreaInterface) {
 	a.assertInitialized()
 	col := matrix.ColorMix(ed.Theme().ColorPanel, matrix.ColorWhite(), 0.1)
-	a.Panel.SetBorderColor(col, col, col, col)
+	a.panel.SetBorderColor(col, col, col, col)
 	size := float32(math.Max(3, math.Ceil(float64(ed.Theme().SizeTrenchGlobal*0.25))))
-	a.Panel.SetBorderSize(size, size, size, size)
+	a.panel.SetBorderSize(size, size, size, size)
 }
 
 func (a *Area) Unhighlight(ed EditorAreaInterface) {
 	a.assertInitialized()
 	col := matrix.ColorMix(ed.Theme().ColorPanel, matrix.ColorWhite(), 0.04)
-	a.Panel.SetBorderColor(col, col, col, col)
+	a.panel.SetBorderColor(col, col, col, col)
 	size := float32(math.Max(3, math.Ceil(float64(ed.Theme().SizeTrenchGlobal*0.25))))
-	a.Panel.SetBorderSize(size, size, size, size)
+	a.panel.SetBorderSize(size, size, size, size)
 }
 
 func (a *Area) SetBackdropTexture(ed EditorAreaInterface, tex *rendering.Texture) {
 	a.assertInitialized()
 	if tex == nil {
-		a.Panel.SetColor(ed.Theme().ColorPanel)
-		a.Panel.RemoveBackground()
+		a.panel.SetColor(ed.Theme().ColorPanel)
+		a.panel.RemoveBackground()
 	} else {
-		a.Panel.SetColor(matrix.ColorWhite())
-		a.Panel.SetBackground(tex)
+		a.panel.SetColor(matrix.ColorWhite())
+		a.panel.SetBackground(tex)
 	}
 }
 
 func (a *Area) HasBackdropTexture() bool {
-	return a.Panel != nil && a.Panel.HasBackground()
+	return a.panel != nil && a.panel.HasBackground()
 }
 
 func (a *Area) BackdropColor() matrix.Color {
 	a.assertInitialized()
-	return a.Panel.Base().ShaderData().BgColor
+	return a.panel.Base().ShaderData().BgColor
 }
 
 func (a *Area) SetOutlineColor(color matrix.Color) {
 	a.assertInitialized()
-	a.Panel.SetOutline(2, 0, color)
+	a.panel.SetOutline(2, 0, color)
 }
 
 func (a *Area) assertInitialized() {
-	if a.Panel == nil || a.manager == nil {
+	if a.panel == nil || a.manager == nil {
 		panic("UI audit on uninitialized area")
 	}
 }
@@ -735,5 +788,10 @@ func (s CenterStylizer) ProcessStyle(layout *ui.Layout) []error {
 	}
 	layout.SetInnerOffsetTop(-height/2 + layout.PixelSize().Y())
 	layout.SetInnerOffsetLeft(-width/2 + layout.PixelSize().X())
+	return nil
+}
+
+func (s MaxWidthStylizer) ProcessStyle(layout *ui.Layout) []error {
+	layout.ScaleWidth(s.Parent.Value().Layout().PixelSize().X() - 32)
 	return nil
 }

@@ -12,7 +12,7 @@ import (
 
 	"kaijuengine.com/editor/project/project_file_system"
 	"kaijuengine.com/platform/profiler/tracing"
-	"kaijuengine.com/tools/font_to_msdf"
+	"kaijuengine.com/tools/msdf_gen"
 )
 
 func init() { addCategory(Font{}) }
@@ -49,7 +49,7 @@ func (Font) Import(src string, fs *project_file_system.FileSystem) (ProcessedImp
 			continue
 		}
 		found = true
-		kf, err := font_to_msdf.ProcessTTF(src, fs.FullPath(dir[i].Name()))
+		kf, err := msdf_gen.ProcessTTF(src, fs.FullPath(dir[i].Name()))
 		if err != nil {
 			return p, err
 		}

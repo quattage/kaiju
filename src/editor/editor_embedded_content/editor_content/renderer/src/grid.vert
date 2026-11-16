@@ -11,12 +11,14 @@ layout(set = 0, binding = 1) readonly buffer GridData {
 	float FarClip;
     uint GridLineCount;
 	vec4 ClipRect;
-	vec4 steps[OVERLAY_GRID_TOTAL_STEPS];
+	vec4 Steps[OVERLAY_GRID_TOTAL_STEPS];
+	vec4 Colors[4];
 };
 
 layout(location = 0) out vec3 pos;
 layout(location = 1) out vec2 coord;
-layout(location = 2) flat out float VertexEmphasis; 
+layout(location = 2) flat out float LineAlpha; 
+layout(location = 3) flat out float LineEmphasis; 
 
 struct LineData {
 	vec2 P;	
@@ -42,7 +44,7 @@ LineData decodeVertex(uint vertID) {
 
 bool isOccluded(LineData line, uint level) {
 	if (hasFlag(GridFeatureFlags, GRID_SHOWN) && (line.level < OVERLAY_GRID_STEPS_DRAW - 1) && (level < OVERLAY_GRID_TOTAL_STEPS - 1)) {
-		float occ = abs(line.P[line.axis]) / steps[level + 1][line.axis];
+		float occ = abs(line.P[line.axis]) / Steps[level + 1][line.axis];
 		if (isApprox(floor(occ), occ, 1e-4f))
 			return true;
 	}
@@ -54,7 +56,7 @@ void main() {
 	LineData line = decodeVertex(gl_VertexIndex);
 	int lineLevel = int(GridLevel) + int(line.level) - (hasFlag(GridFeatureFlags, GRID_ALIGNED) ? 0 : 1);
 	lineLevel = clamp(lineLevel, 0, OVERLAY_GRID_TOTAL_STEPS - 1);
-	float size = steps[lineLevel][line.axis];
+	float size = Steps[lineLevel][line.axis];
 	if (size <= 0.0f)
 		return;
 	vec2 offset = vec2(cameraPosition.x, cameraPosition.z);
@@ -65,7 +67,9 @@ void main() {
 	}
 
 	coord = line.P;
-	VertexEmphasis = clamp(line.level + 1.0f - fract(GridLevel), 0, 1);
+	float gf = fract(GridLevel);
+	LineAlpha = clamp(float(line.level) + 1.0f - gf, 0.0f, 1.0f);
+	LineEmphasis = clamp(float(line.level) - gf, 0.0f, 1.0f);
 
 	if (cameraPosition.w > 0) {
 		// TODO offset alpha on the distance from the center of the viewport

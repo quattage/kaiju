@@ -4,7 +4,7 @@
 /* MIT License, Copyright (c) 2015-present Brent Farris, (John 4:13-14)       */
 /******************************************************************************/
 
-package font_to_msdf
+package msdf_gen
 
 import (
 	"encoding/json"

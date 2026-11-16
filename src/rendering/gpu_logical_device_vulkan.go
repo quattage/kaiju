@@ -180,7 +180,7 @@ func (g *GPULogicalDevice) remakeSwapChainImpl(window RenderingContainer, inst *
 	}
 	// Valid swap chain -> tear down old global uniforms before rebuilding
 	device.destroyGlobalUniforms()
-	slog.Info("recreated vulkan swap chain")
+	slog.Debug("Recreated swap chain")
 	if err := g.SwapChain.SetupImageViews(device); err != nil {
 		return err
 	}

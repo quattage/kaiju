@@ -39,6 +39,7 @@ type Settings struct {
 	UIScrollSpeed         float32 `default:"20" label:"UI Scroll Speed"`
 	UIScale               float32 `default:"1"`
 	ShowGrid              bool    `default:"true" label:"Show Viewport Grid"`
+	ConsoleScrollback     uint32  `default:4096`
 	EditorCamera          EditorCameraSettings
 	Snapping              SnapSettings
 	BuildTools            BuildToolSettings
@@ -91,6 +92,7 @@ func (s *Settings) setDefaults() {
 	s.UIScrollSpeed = 20
 	s.UIScale = 1
 	s.ShowGrid = true
+	s.ConsoleScrollback = 4096
 	s.EditorCamera.ZoomSpeed = 120
 	s.EditorCamera.FlySpeed = 10
 	s.EditorCamera.FlyBoostMultiplier = 4

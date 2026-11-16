@@ -106,6 +106,7 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 	} else {
 		posx = max(0, min(posx, maxW-wx))
 	}
+
 	if posy < 0 {
 		posy = (maxH - wy) / 2
 	} else {
@@ -113,8 +114,8 @@ func (wm *WorkspaceManager) OpenOverlay(areaID string, posx, posy float32) (*Are
 	}
 	newArea.open(wm, wx, wy)
 	newArea.SetBackdropColor(matrix.ColorMix(wm.Editor().Theme().ColorPanel, matrix.ColorWhite(), 0.008))
-	newArea.Panel.Base().Layout().SetOffset(posx, posy)
-	newArea.Panel.Base().Layout().SetZ(9)
+	newArea.GetPanel().Base().Layout().SetOffset(posx, posy)
+	newArea.GetPanel().Base().Layout().SetZ(9)
 	newArea.overlayPX = (posx + wx*0.5) / maxW
 	newArea.overlayPY = (posy + wy*0.5) / maxH
 	wm.overlays = append(wm.overlays, newArea)
@@ -132,7 +133,7 @@ func (wm *WorkspaceManager) Open(areaID string, parentArea *Area, direction Spli
 	if parentArea == nil {
 		if wm.main == nil {
 			wm.main = newBlankArea(&areaToOpen)
-			slog.Info(fmt.Sprintf("Populated MainArea with %s", areaToOpen.String()))
+			slog.Debug(fmt.Sprintf("Populated MainArea with %s", areaToOpen.String()))
 			wm.main.open(wm, float32(wm.editor.Host().Window.Width()), float32(wm.editor.Host().Window.Height()))
 			return wm.main, nil
 		}
@@ -225,11 +226,11 @@ func (wm *WorkspaceManager) Update(deltaTime float64) {
 func (a *Area) updateArea(wm *WorkspaceManager, deltaTime float64, posx, posy, width, height, gutterThick float32, nearby *[]Gutter) {
 	if a.IsFunctional() {
 		if a.IsOverlay() || a.areaType.Flags == 0 || a.owner == wm.main {
-			a.Panel.Base().Layout().SetOffset(float32(max(1, int(math.Ceil(float64(posx))))), float32(max(1, int(math.Ceil(float64(posy))))))
-			a.Panel.Base().Layout().Scale(float32(max(1, int(math.Ceil(float64(width))))), float32(max(1, int(math.Ceil(float64(height))))))
+			a.GetPanel().Base().Layout().SetOffset(float32(max(1, int(math.Ceil(float64(posx))))), float32(max(1, int(math.Ceil(float64(posy))))))
+			a.GetPanel().Base().Layout().Scale(float32(max(1, int(math.Ceil(float64(width))))), float32(max(1, int(math.Ceil(float64(height))))))
 		} else {
-			a.Panel.Base().Layout().SetOffset(float32(max(1, int(math.Ceil(float64(posx+gutterThick))))), float32(max(1, int(math.Ceil(float64(posy+gutterThick))))))
-			a.Panel.Base().Layout().Scale(float32(max(1, int(math.Ceil(float64(width+gutterThick))))), float32(max(1, int(math.Ceil(float64(height+gutterThick))))))
+			a.GetPanel().Base().Layout().SetOffset(float32(max(1, int(math.Ceil(float64(posx+gutterThick/2))))), float32(max(1, int(math.Ceil(float64(posy+gutterThick/2))))))
+			a.GetPanel().Base().Layout().Scale(float32(max(1, int(math.Ceil(float64(width-gutterThick*2))))), float32(max(1, int(math.Ceil(float64(height-gutterThick*2))))))
 		}
 		if !wm.IsGrabbing() {
 			mp := wm.Editor().Host().Window.Cursor.ScreenPosition()
@@ -254,28 +255,29 @@ func (a *Area) updateArea(wm *WorkspaceManager, deltaTime float64, posx, posy, w
 			// A composite area parented to itself is not allowed and should
 			// never occur.
 			panic("cycle in area hierarchy")
+
 		}
 		pp := wm.Editor().Host().Window.Cursor.ScreenPosition()
 		switch a.splitDirection {
 		case SplitHorizontal:
 			split := width * a.ratio
 			wm.constrainArea(a)
-			if pp.Y() > posy+gutterThick && pp.Y() < posy+height-gutterThick {
-				dist := klib.FAbs(pp.X() - (posx + split + gutterThick/2))
-				if dist < gutterThick*2 {
+			if pp.Y() > posy-10 && pp.Y() < posy+height+10 {
+				dist := matrix.Abs(pp.X() - (posx + split + gutterThick/2))
+				if dist < gutterThick*3 {
 					*nearby = append(*nearby, Gutter{a, posx + split - gutterThick/2, posy, gutterThick * 2, height, dist, false})
 				}
 			}
 			// We recurse into children. The cumulative position and size here
-			// are computed based on the area's Ratio and never stored.
+			// are computed based on the area's ratio
 			a.childA.updateArea(wm, deltaTime, posx, posy, split, height, gutterThick, nearby)
 			a.childB.updateArea(wm, deltaTime, split, posy, width-split, height, gutterThick, nearby)
 		case SplitVertical:
 			split := height * a.ratio
 			wm.constrainArea(a)
-			if pp.X() > posx+gutterThick && pp.X() < posx+width-gutterThick {
-				dist := klib.FAbs(pp.Y() - (posy + split + gutterThick/2))
-				if dist < gutterThick*2 {
+			if pp.X() > posx+10 && pp.X() < posx+width-10 {
+				dist := matrix.Abs(pp.Y() - (posy + split + gutterThick/2))
+				if dist < gutterThick*3 {
 					*nearby = append(*nearby, Gutter{a, posx, posy + split - gutterThick/2, width, gutterThick * 2, dist, false})
 				}
 			}
@@ -375,7 +377,7 @@ func (wm *WorkspaceManager) constrainArea(area *Area) {
 }
 
 func (a *Area) focusInterface(wm *WorkspaceManager) {
-	if a.Panel != nil && a.manager != nil && !a.IsOverlay() {
+	if a.GetPanel() != nil && a.manager != nil && !a.IsOverlay() {
 		a.Highlight(wm.editor)
 	}
 	if a.internalHandler != nil {
@@ -384,7 +386,7 @@ func (a *Area) focusInterface(wm *WorkspaceManager) {
 }
 
 func (a *Area) blurInterface(wm *WorkspaceManager) {
-	if a.Panel != nil && a.manager != nil {
+	if a.GetPanel() != nil && a.manager != nil {
 		a.Unhighlight(wm.editor)
 	}
 	if a.internalHandler != nil {
@@ -408,10 +410,8 @@ func (wm *WorkspaceManager) setGutter(gutter Gutter) {
 	if gutter.composite == nil && wm.nearbyGutter.composite != nil {
 		wm.nearbyGutter = Gutter{}
 		wm.editor.Host().Window.CursorStandard()
-		// wm.drawDebugPanel(matrix.Vec4One())
 	} else if gutter.composite != wm.nearbyGutter.composite {
 		wm.nearbyGutter = gutter
-		// wm.drawDebugPanel(matrix.NewVec4(wm.closeGutter.posx, wm.closeGutter.posy, wm.closeGutter.width, wm.closeGutter.height))
 		switch gutter.composite.splitDirection {
 		case SplitHorizontal:
 			wm.editor.Host().Window.CursorSizeWE()
@@ -434,18 +434,9 @@ func (wm *WorkspaceManager) constructDefaultWorkspace() {
 	}
 	cb, _ := wm.Open("com.kaiju.area_content_browser", nil, SplitVertical, -0.5)
 	wm.Open("com.kaiju.area_fallback", sv.childA, SplitHorizontal, -0.75)
-	cbSplit, _ := wm.Open("com.kaiju.area_fallback", cb, SplitHorizontal, 0.75)
-	wm.Open("com.kaiju.area_example", cbSplit, SplitHorizontal, 0.75)
+	wm.Open("com.kaiju.area_console", cb, SplitHorizontal, 0.75)
 }
 
 func (wm *WorkspaceManager) GetActiveStage() *editor_active_stage.ActiveStage {
 	return &wm.stage
-}
-
-func (wm *WorkspaceManager) GetAreaByType(*AreaType) *Area {
-	return nil
-}
-
-func (wm *WorkspaceManager) GetAreaByID(id string) *Area {
-	return nil
 }

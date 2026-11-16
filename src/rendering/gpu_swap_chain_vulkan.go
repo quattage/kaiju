@@ -118,7 +118,7 @@ func (g *GPUSwapChain) setupImageViewsImpl(device *GPUDevice) error {
 
 func (g *GPUSwapChain) createColorImpl(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.createColorImpl").End()
-	slog.Info("creating swap chain color resources")
+	slog.Debug("Creating swap chain color resources")
 	colorFormat := g.Images[0].Format
 	err := device.CreateImage(&g.Color, gpu_types.MemoryPropertyDeviceLocalBit,
 		GPUImageCreateRequest{
@@ -144,7 +144,7 @@ func (g *GPUSwapChain) createColorImpl(device *GPUDevice) error {
 
 func (g *GPUSwapChain) createDepthImpl(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.createDepthImpl").End()
-	slog.Info("creating vulkan depth resources")
+	slog.Debug("Creating depth resources")
 	fmt := device.PhysicalDevice.FindSupportedFormat(depthFormatCandidates(),
 		gpu_types.ImageTilingOptimal, gpu_types.FormatFeatureDepthStencilAttachmentBit)
 	err := device.CreateImage(&g.Depth, gpu_types.MemoryPropertyDeviceLocalBit, GPUImageCreateRequest{
@@ -209,7 +209,7 @@ func (g *GPUSwapChain) destroyImpl(device *GPUDevice) {
 
 func (g *GPUSwapChain) createFrameBufferImpl(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.createFrameBufferImpl").End()
-	slog.Info("creating vulkan swap chain frame buffer")
+	slog.Debug("Creating swap chain frame buffer")
 	g.FrameBuffers = make([]gpu_types.FrameBuffer, len(g.Images))
 	var err error
 	for i := range g.FrameBuffers {

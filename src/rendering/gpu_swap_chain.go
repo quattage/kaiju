@@ -88,7 +88,7 @@ func (g *GPUSwapChain) Destroy(device *GPUDevice) {
 
 func (g *GPUSwapChain) SetupImageViews(device *GPUDevice) error {
 	defer tracing.NewRegion("GPUSwapChain.SetupImageViews").End()
-	slog.Info("creating swap chain image views")
+	slog.Debug("Creating swap chain image views")
 	return g.setupImageViewsImpl(device)
 }
 

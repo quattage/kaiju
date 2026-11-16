@@ -122,6 +122,10 @@ type virtualListData struct {
 	haveLast      bool
 }
 
+func (d *virtualListData) Layout() VirtualLayout {
+	return d.layout
+}
+
 func (d *virtualListData) innerPanelData() *panelData { return &d.panelData }
 
 func (u *UI) ToVirtualList() *VirtualList      { return (*VirtualList)(u) }
@@ -322,6 +326,30 @@ func (vl *VirtualList) VisibleRange() (first, last int) {
 		return 0, -1
 	}
 	return first, last
+}
+
+// ViewportRange returns the [first, last] row indices that can fit
+// within the viewport bounds. This differs from VisibleRange in that
+// it doesn't include overscan.
+func (vl *VirtualList) ViewportRange() (first, last int) {
+	data := vl.Data()
+	first, last = -1, -1
+	data.layout.VisibleAt(vl.scroll(), vl.viewport(), 0, func(i int) {
+		if first < 0 || i < first {
+			first = i
+		}
+		if i > last {
+			last = i
+		}
+	})
+	if first < 0 {
+		return 0, -1
+	}
+	return first, last
+}
+
+func (vl *VirtualList) GetOverscan() int {
+	return vl.Data().overscan
 }
 
 // ScrollToIndex scrolls so row index is visible according to align. It works for

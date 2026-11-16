@@ -113,7 +113,7 @@ func (p *Project) Initialize(path, templatePath string, editorVersion float64) e
 		return err
 	}
 	if err = p.cacheDatabase.Build(&p.fileSystem); err != nil {
-		slog.Error("failed to read the cache database", "error", err)
+		slog.Error("Failed to read the cache database", "error", err)
 		return err
 	}
 	p.Settings = Settings{}
@@ -163,7 +163,7 @@ func (p *Project) Open(path string) error {
 		return ProjectOpenError{Path: path}
 	}
 	if err = p.cacheDatabase.Build(&p.fileSystem); err != nil {
-		slog.Error("failed to read the cache database", "error", err)
+		slog.Error("Failed to read the cache database", "error", err)
 		return err
 	}
 	p.Settings = Settings{}
@@ -242,9 +242,9 @@ func (p *Project) CompileWithTags(tags ...string) {
 	defer p.isCompiling.Store(false)
 
 	if err := p.fileSystem.WriteDataBindingRegistryInit(p.entityData); err == nil {
-		slog.Info("successfully created data binding init registry")
+		slog.Debug("Successfully created data binding init registry")
 	} else {
-		slog.Error("failed to create the data binding init registry", "error", err)
+		slog.Error("Failed to create the data binding init registry", "error", err)
 	}
 	args := []string{
 		"build",
@@ -252,10 +252,10 @@ func (p *Project) CompileWithTags(tags ...string) {
 	}
 	if len(tags) > 0 {
 		tagList := strings.Join(tags, ",")
-		slog.Info("compiling the project with tags", "tags", tagList)
+		slog.Info(fmt.Sprintf("Compiling the project with tags [%s]...", tagList))
 		args = append(args, fmt.Sprintf("-tags=%s", tagList))
 	} else {
-		slog.Info("compiling the project")
+		slog.Info("Compiling the project...")
 	}
 	if !slices.Contains(tags, "debug") {
 		args = append(args, `-ldflags=-s -w`)
@@ -266,10 +266,10 @@ func (p *Project) CompileWithTags(tags ...string) {
 	var stderr, stdout bytes.Buffer
 	cmd.Stderr, cmd.Stdout = &stderr, &stdout
 	if err := cmd.Run(); err != nil {
-		slog.Error("project executable failed to compile!", "error", err,
+		slog.Error("Project executable failed to compile!", "error", err,
 			"log", stdout.String(), "errlog", stderr.String())
 	} else {
-		slog.Info("project executable successfully compiled")
+		slog.Info("Project executable successfully compiled")
 	}
 }
 
@@ -436,31 +436,31 @@ func (p *Project) ReadSourceCode() {
 		for i := range p.entityData {
 			p.entityDataMap[p.entityData[i].RegisterKey] = &p.entityData[i]
 		}
-		slog.Info("completed reading through code for bindable data", "count", len(p.entityData))
+		slog.Debug(fmt.Sprintf("Found %v entity data bindings", len(p.entityData)))
 		p.OnEntityDataUpdated.Execute(p.entityData)
 		p.readingCode = false
 	}()
 
 	p.entityData = p.entityData[:0]
 	p.entityDataMap = make(map[string]*codegen.GeneratedType)
-	slog.Info("reading through project code to find bindable data")
+	slog.Info("Reading through project code to find bindable data...")
 	kaijuRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju"))
 	if err != nil {
-		slog.Error("failed to read the kaiju source code folder for the project", "error", err)
+		slog.Error("Failed to read the kaiju source code folder for the project", "error", err)
 		return
 	}
 	defer kaijuRoot.Close()
 
 	kaijuBindings, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "kaiju/engine_entity_data"))
 	if err != nil {
-		slog.Error("failed to read the kaiju engine entity data folder for the project", "error", err)
+		slog.Error("Failed to read the kaiju engine entity data folder for the project", "error", err)
 		return
 	}
 	defer kaijuBindings.Close()
 
 	srcRoot, err := os.OpenRoot(filepath.Join(p.fileSystem.Name(), "src"))
 	if err != nil {
-		slog.Error("failed to read the source code folder for the project", "error", err)
+		slog.Error("Failed to read the source code folder for the project", "error", err)
 		return
 	}
 	defer srcRoot.Close()

@@ -1,5 +1,15 @@
 ![kaiju-engine-logo](https://github.com/KaijuEngine/kaiju_media_files/raw/refs/heads/master/docs/index.md/kaiju_engine_text_wide_logo.png)
 
+
+# Areas
+This is a fork of Kaiju Engine whose [working branch](https://github.com/quattage/kaiju/tree/areas) constitutes a comprehensive rework of the the Kaiju Editor, which abstracts individual frontend elements behind the Area system. The Area system offers an API surface through which editor and plugin code can integrate seamlessly with a common set of semantics. UI is hosted in sub-panels called Areas, which provide a watertight sandbox to create bespoke widgets without affecting other on-screen UI. The editor workspace, instead of describing a fixed set of UI layouts, now hosts an arbitrary arrangement of Areas, where the user can adjust each area's size and save custom configurations on the fly.
+
+## What's left to do:
+- Virtually zero upstream features have been re-implemented (stage view doesn't do anything, no content browser, etc)
+- Areas cannot be created or destroyed, only moved
+
+The rest of this readme file is from upstream
+
 # Kaiju Engine
 Kaiju is a traditionally designed and coded, 2D/3D game engine written in Go (Golang) backed by Vulkan. The goal of the engine is to use a modern, easy, systems level programming language, with a focus on simplicity, to create a new kind of game engine.
 

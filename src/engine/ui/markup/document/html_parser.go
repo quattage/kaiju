@@ -1190,3 +1190,7 @@ func (d *Document) removeId(id string) {
 	delete(d.ids, id)
 	d.idsMutex.Unlock()
 }
+
+func (d *Document) IsManagedBy(uiMan *ui.Manager) bool {
+	return d.uiMan == uiMan
+}

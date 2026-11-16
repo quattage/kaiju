@@ -20,7 +20,6 @@ import (
 	"kaijuengine.com/engine/systems/console"
 	"kaijuengine.com/klib"
 	"kaijuengine.com/klib/contexts"
-	"kaijuengine.com/platform/profiler/tracing"
 )
 
 func consoleTop(host *engine.Host) string {
@@ -55,65 +54,68 @@ func consoleMerge(host *engine.Host, argStr string) string {
 }
 
 func launchWeb(c *console.Console, webType, ctxKey string) (*contexts.Cancellable, error) {
-	ctx := contexts.NewCancellable()
-	targetFile := pprofCPUFile
-	args := []string{"tool"}
-	var procName, startMsg string
-	if webType == "trace" {
-		procName = "trace"
-		args = append(args, procName, traceFile)
-		startMsg = "Starting server on localhost"
-	} else {
-		if webType == "mem" {
-			targetFile = pprofHeapFile
-		}
-		procName = "pprof"
-		args = append(args, procName, "-http=:"+pprofWebPort, targetFile)
-		startMsg = "Starting server on localhost:" + pprofWebPort
-	}
-	cmd := exec.CommandContext(ctx, "go", args...)
-	err := cmd.Start()
-	if err != nil {
-		return nil, err
-	}
-	go func() {
-		c.Write(startMsg)
-		<-ctx.Done()
-		cmd.Process.Kill()
-		c.DeleteData(ctxKey)
-		// Go tool spawns child process pprof.exe which is not killed by the above command
-		// So we need to kill it manually
-		if runtime.GOOS == "windows" {
-			killCmd := exec.Command("taskkill", "/F", "/IM", procName+".exe")
-			killCmd.Run()
-		} else {
-			// On mac, the child process is named pprof
-			killCmd := exec.Command("pkill", procName)
-			killCmd.Run()
-		}
-		if ctx.Err() == nil {
-			c.Write("Failed to start web server, make sure you have go and graphviz installed.")
-			ctx.Cancel()
-		}
-	}()
-	return ctx, err
+	// ctx := contexts.NewCancellable()
+	// targetFile := pprofCPUFile
+	// args := []string{"tool"}
+	// var procName, startMsg string
+	// if webType == "trace" {
+	// 	procName = "trace"
+	// 	args = append(args, procName, traceFile)
+	// 	startMsg = "Starting server on localhost"
+	// } else {
+	// 	if webType == "mem" {
+	// 		targetFile = pprofHeapFile
+	// 	}
+	// 	procName = "pprof"
+	// 	args = append(args, procName, "-http=:"+pprofWebPort, targetFile)
+	// 	startMsg = "Starting server on localhost:" + pprofWebPort
+	// }
+	// cmd := exec.CommandContext(ctx, "go", args...)
+	// err := cmd.Start()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// go func() {
+	// 	c.Write(startMsg)
+	// 	<-ctx.Done()
+	// 	cmd.Process.Kill()
+	// 	c.DeleteData(ctxKey)
+	// 	// Go tool spawns child process pprof.exe which is not killed by the above command
+	// 	// So we need to kill it manually
+	// 	if runtime.GOOS == "windows" {
+	// 		killCmd := exec.Command("taskkill", "/F", "/IM", procName+".exe")
+	// 		killCmd.Run()
+	// 	} else {
+	// 		// On mac, the child process is named pprof
+	// 		killCmd := exec.Command("pkill", procName)
+	// 		killCmd.Run()
+	// 	}
+	// 	if ctx.Err() == nil {
+	// 		c.Write("Failed to start web server, make sure you have go and graphviz installed.")
+	// 		ctx.Cancel()
+	// 	}
+	// }()
+	// return ctx, err
+	return nil, nil
 }
 
 func pprofStart(c *console.Console) string {
-	pprofFile := klib.MustReturn(os.Create(pprofCPUFile))
-	pprof.StartCPUProfile(pprofFile)
-	c.SetData(pprofFileKey, pprofFile)
-	return "CPU profile started"
+	// pprofFile := klib.MustReturn(os.Create(pprofCPUFile))
+	// pprof.StartCPUProfile(pprofFile)
+	// c.SetData(pprofFileKey, pprofFile)
+	// return "CPU profile started"
+	return ""
 }
 
 func pprofStop(c *console.Console) string {
-	pprofFile, ok := c.Data(pprofFileKey).(*os.File)
-	if !ok || pprofFile == nil {
-		return "CPU profile not yet started"
-	}
-	pprof.StopCPUProfile()
-	pprofFile.Close()
-	return "CPU profile written to " + pprofCPUFile
+	// pprofFile, ok := c.Data(pprofFileKey).(*os.File)
+	// if !ok || pprofFile == nil {
+	// 	return "CPU profile not yet started"
+	// }
+	// pprof.StopCPUProfile()
+	// pprofFile.Close()
+	// return "CPU profile written to " + pprofCPUFile
+	return ""
 }
 
 func pprofHeap() string {
@@ -124,30 +126,32 @@ func pprofHeap() string {
 }
 
 func webStart(c *console.Console, webType, ctxKey string) string {
-	ctx, ok := c.Data(ctxKey).(*contexts.Cancellable)
-	if ok && ctx != nil {
-		ctx.Cancel()
-		c.DeleteData(ctxKey)
-	}
-	if ctx, err := launchWeb(c, webType, ctxKey); err != nil {
-		return err.Error()
-	} else {
-		if !c.HasData(ctxKey) {
-			c.SetData(ctxKey, ctx)
-		}
-		return "Starting up web server..."
-	}
+	// ctx, ok := c.Data(ctxKey).(*contexts.Cancellable)
+	// if ok && ctx != nil {
+	// 	ctx.Cancel()
+	// 	c.DeleteData(ctxKey)
+	// }
+	// if ctx, err := launchWeb(c, webType, ctxKey); err != nil {
+	// 	return err.Error()
+	// } else {
+	// 	if !c.HasData(ctxKey) {
+	// 		c.SetData(ctxKey, ctx)
+	// 	}
+	// 	return "Starting up web server..."
+	// }
+	return ""
 }
 
 func pprofWebStop(c *console.Console) string {
-	ctx, ok := c.Data(pprofCtxDataKey).(*contexts.Cancellable)
-	if ok && ctx != nil {
-		ctx.Cancel()
-		ctx = nil
-		return "Web server stopped"
-	} else {
-		return "Web server not running"
-	}
+	// ctx, ok := c.Data(pprofCtxDataKey).(*contexts.Cancellable)
+	// if ok && ctx != nil {
+	// 	ctx.Cancel()
+	// 	ctx = nil
+	// 	return "Web server stopped"
+	// } else {
+	// 	return "Web server not running"
+	// }
+	return ""
 }
 
 func pprofWeb(c *console.Console, args []string) string {
@@ -228,14 +232,15 @@ func traceWeb(c *console.Console, args []string) string {
 }
 
 func traceWebStop(c *console.Console) string {
-	ctx, ok := c.Data(traceCtxDataKey).(*contexts.Cancellable)
-	if ok && ctx != nil {
-		ctx.Cancel()
-		ctx = nil
-		return "Web server stopped"
-	} else {
-		return "Web server not running"
-	}
+	// ctx, ok := c.Data(traceCtxDataKey).(*contexts.Cancellable)
+	// if ok && ctx != nil {
+	// 	ctx.Cancel()
+	// 	ctx = nil
+	// 	return "Web server stopped"
+	// } else {
+	// 	return "Web server not running"
+	// }
+	return ""
 }
 
 func traceCommands(host *engine.Host, arg string) string {
@@ -316,18 +321,18 @@ GOMAXPROCS: %d
 }
 
 func SetupConsole(host *engine.Host) {
-	defer tracing.NewRegion("profiler.SetupConsole").End()
-	c := console.For(host)
-	c.AddCommand("pprof", "Run profiler commands: 'mem' for heap, 'start/stop' for performance capture. View with 'web cpu', 'web mem', and end with 'web stop'", pprofCommands)
-	c.AddCommand("trace", "Run trace commands like 'start', 'stop'. After stopping gotraceui will automatically show", traceCommands)
-	host.OnClose.Add(func() {
-		if c.HasData(pprofCtxDataKey) {
-			c.Data(pprofCtxDataKey).(*contexts.Cancellable).Cancel()
-		}
-		if c.HasData(traceCtxDataKey) {
-			c.Data(traceCtxDataKey).(*contexts.Cancellable).Cancel()
-		}
-	})
-	console.For(host).AddCommand("gc", "Forces garbage collection", gc)
-	console.For(host).AddCommand("memstats", "Shows current memory stats", memStats)
+	// defer tracing.NewRegion("profiler.SetupConsole").End()
+	// c := host.DevConsole()
+	// c.AddCommand("pprof", "Run profiler commands: 'mem' for heap, 'start/stop' for performance capture. View with 'web cpu', 'web mem', and end with 'web stop'", pprofCommands)
+	// c.AddCommand("trace", "Run trace commands like 'start', 'stop'. After stopping gotraceui will automatically show", traceCommands)
+	// host.OnClose.Add(func() {
+	// 	if c.HasData(pprofCtxDataKey) {
+	// 		c.Data(pprofCtxDataKey).(*contexts.Cancellable).Cancel()
+	// 	}
+	// 	if c.HasData(traceCtxDataKey) {
+	// 		c.Data(traceCtxDataKey).(*contexts.Cancellable).Cancel()
+	// 	}
+	// })
+	// console.For(host).AddCommand("gc", "Forces garbage collection", gc)
+	// console.For(host).AddCommand("memstats", "Shows current memory stats", memStats)
 }

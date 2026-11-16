@@ -8,7 +8,6 @@ package html_preview
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +16,6 @@ import (
 	"kaijuengine.com/engine"
 	"kaijuengine.com/engine/assets"
 	"kaijuengine.com/engine/host_container"
-	"kaijuengine.com/engine/systems/console"
 	"kaijuengine.com/engine/ui"
 	"kaijuengine.com/engine/ui/markup"
 	"kaijuengine.com/engine/ui/markup/document"
@@ -143,14 +141,14 @@ func New(htmlFile string) (*host_container.Container, error) {
 
 func SetupConsole(host *engine.Host) {
 	defer tracing.NewRegion("html_preview.SetupConsole").End()
-	console.For(host).AddCommand("preview", "Opens a live-updating preview of the given HTML file path", func(_ *engine.Host, filePath string) string {
-		filePath = linkFile(filePath)
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			return fmt.Sprintf("File not found: %s", filePath)
-		}
-		if _, err := New(filePath); err != nil {
-			return fmt.Sprintf("Error creating preview: %s", err)
-		}
-		return fmt.Sprintf("Previewing file: %s", filePath)
-	})
+	// console.For(host).AddCommand("preview", "Opens a live-updating preview of the given HTML file path", func(_ *engine.Host, filePath string) string {
+	// 	filePath = linkFile(filePath)
+	// 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	// 		return fmt.Sprintf("File not found: %s", filePath)
+	// 	}
+	// 	if _, err := New(filePath); err != nil {
+	// 		return fmt.Sprintf("Error creating preview: %s", err)
+	// 	}
+	// 	return fmt.Sprintf("Previewing file: %s", filePath)
+	// })
 }
